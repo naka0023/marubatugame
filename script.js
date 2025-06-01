@@ -23,6 +23,9 @@ cells.forEach(cell => {
 });
 
 function handleCellClick(cell) {
+
+    audio();
+
     const index = parseInt(cell.getAttribute('data-index'));
     if (gameState[index] !== '' || !gameActive || cell.classList.contains('disabled')) return;
     gameState[index] = currentPlayer;
@@ -105,4 +108,9 @@ function resetGame() {
         cell.classList.remove('winner', 'disabled');
     });
     status.textContent = `プレイヤー${currentPlayer}のターンです`;
+}
+
+function audio() {
+    document.getElementById('btn_audio').currentTime = 0; //連続クリックに対応
+    document.getElementById('btn_audio').play(); //クリックしたら音を再生
 }
