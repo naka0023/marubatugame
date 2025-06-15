@@ -1,0 +1,78 @@
+body {
+    font-family: 'Comic Sans MS', 'Arial', cursive;
+    text-align: center;
+    background: linear-gradient(135deg, #ffe0f0, #e0f7ff);
+    color: #333;
+    margin: 0;
+    padding: 30px;
+}
+
+h1 {
+    font-size: 2.5em;
+    color: #ff4081;
+    text-shadow: 1px 1px 2px #fff;
+    margin-bottom: 30px;
+}
+
+table {
+    margin: 0 auto;
+    border-collapse: collapse;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+td {
+    width: 100px;
+    height: 100px;
+    border: 3px solid #ff80ab;
+    font-size: 40px;
+    font-weight: bold;
+    background-color: #fff0f5;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+    border-radius: 15px;
+}
+
+td:hover:not(.disabled):not(.winner) {
+    background-color: #ffe4ec;
+    transform: scale(1.05);
+}
+
+td.winner {
+    background-color: #ffff8d;
+    animation: flash 0.5s alternate infinite;
+}
+
+td.disabled {
+    background-color: #e0e0e0;
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+@keyframes flash {
+    from { background-color: #ffff8d; }
+    to { background-color: #fff176; }
+}
+
+button {
+    margin-top: 30px;
+    padding: 12px 25px;
+    font-size: 18px;
+    background-color: #ff80ab;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #f06292;
+}
+
+#status {
+    margin-top: 20px;
+    font-size: 20px;
+    color: #3f51b5;
+    font-weight: bold;
+}
