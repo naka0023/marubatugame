@@ -19,14 +19,14 @@
     }
     #board-container {
       display: grid;
-      grid-template-columns: 60px repeat(6, 60px) 60px;
-      grid-template-rows: 60px repeat(6, 60px) 60px;
+      grid-template-columns: 30px repeat(6, 30px) 30px;
+      grid-template-rows: 30px repeat(6, 30px) 30px;
       gap: 2px;
       margin-bottom: 20px;
     }
     .cell {
-      width: 60px;
-      height: 60px;
+      width: 30px;
+      height: 30px;
       background-color: #fff;
       border: 1px solid #999;
       display: flex;
@@ -34,8 +34,8 @@
       justify-content: center;
     }
     .ball {
-      width: 40px;
-      height: 40px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
     }
     .black {
@@ -46,9 +46,9 @@
       border: 2px solid #000;
     }
     .insert-button {
-      width: 60px;
-      height: 60px;
-      font-size: 24px;
+      width: 30px;
+      height: 30px;
+      font-size: 14px;
       font-weight: bold;
       padding: 0;
       margin: 0;
@@ -121,8 +121,8 @@
             boardContainer.appendChild(cell);
           } else {
             const spacer = document.createElement('div');
-            spacer.style.width = '60px';
-            spacer.style.height = '60px';
+            spacer.style.width = '30px';
+            spacer.style.height = '30px';
             boardContainer.appendChild(spacer);
           }
         }
@@ -194,63 +194,57 @@
     }
 
     function checkWin(player) {
-  const inARow = 5;
-  // 勝利判定の4方向：右(水平)、下(垂直)、右下(斜め)、右上(斜め)
-  const directions = [
-    [0, 1],   // 水平右
-    [1, 0],   // 垂直下
-    [1, 1],   // 斜め右下
-    [-1, 1],  // 斜め右上
-  ];
+      const inARow = 5;
+      const directions = [
+        [0, 1],
+        [1, 0],
+        [1, 1],
+        [-1, 1],
+      ];
 
-  for (let r = 0; r < SIZE; r++) {
-    for (let c = 0; c < SIZE; c++) {
-      if (board[r][c] !== player) continue;
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          if (board[r][c] !== player) continue;
 
-      for (const [dr, dc] of directions) {
-        let cells = [[r, c]];
-        let count = 1;
+          for (const [dr, dc] of directions) {
+            let cells = [[r, c]];
+            let count = 1;
 
-        for (let step = 1; step < inARow; step++) {
-          const nr = r + dr * step;
-          const nc = c + dc * step;
+            for (let step = 1; step < inARow; step++) {
+              const nr = r + dr * step;
+              const nc = c + dc * step;
 
-          if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) break;
-          if (board[nr][nc] === player) {
-            cells.push([nr, nc]);
-            count++;
-          } else {
-            break;
+              if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) break;
+              if (board[nr][nc] === player) {
+                cells.push([nr, nc]);
+                count++;
+              } else {
+                break;
+              }
+            }
+
+            if (count === inARow) {
+              return cells;
+            }
           }
         }
+      }
+      return [];
+    }
 
-        if (count === inARow) {
-          return cells;
+    function resetGame() {
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          board[r][c] = null;
         }
       }
+      currentPlayer = 'black';
+      statusElement.textContent = '黒のターンです';
+      renderBoard();
     }
-  }
-  return [];
-}
 
-  
-  
-  // 盤面と状態を初期化
-  function resetGame() {
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        board[r][c] = null;
-      }
-    }
-    currentPlayer = 'black';
-    statusElement.textContent = '黒のターンです';
-    renderBoard();
-  }
-  
-  // リセットボタンのクリックに対応
-  document.getElementById('reset-button').addEventListener('click', resetGame);
+    document.getElementById('reset-button').addEventListener('click', resetGame);
 
-    
     renderBoard();
   </script>
 </body>
