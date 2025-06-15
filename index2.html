@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ペンタロール</title>
+  <style>
+    body {
+      font-family: 'Yusei Magic', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    #board-container {
+      display: grid;
+      grid-template-columns: 60px repeat(6, 60px) 60px;
+      grid-template-rows: 60px repeat(6, 60px) 60px;
+      gap: 2px;
+      margin-bottom: 20px;
+    }
+    .cell {
+      width: 60px;
+      height: 60px;
+      background-color: #fff;
+      border: 1px solid #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ball {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+    }
+    .black {
+      background-color: black;
+    }
+    .white {
+      background-color: white;
+      border: 2px solid #000;
+    }
+    .insert-button {
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      font-weight: bold;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      background-color: #ddd;
+      border: 1px solid #888;
+    }
+    .highlight {
+      background-color: #fff9c4 !important;
+    }
+    #status {
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>ペンタロール</h1>
+  <div id="board-container"></div>
+  <div id="status">黒のターンです</div>
+  <button id="reset-button" style="margin-bottom: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer;">
+    リセット
+  </button>
+
+  <script>
+    const SIZE = 6;
+    const board = Array(SIZE).fill().map(() => Array(SIZE).fill(null));
+    let currentPlayer = 'black';
+    const boardContainer = document.getElementById('board-container');
+    const statusElement = document.getElementById('status');
+
+    function renderBoard(highlightCells = []) {
+      boardContainer.innerHTML = '';
+      for (let r = -1; r <= SIZE; r++) {
+        for (let c = -1; c <= SIZE; c++) {
+          if (r === -1 && c >= 0 && c < SIZE) {
+            const btn = document.createElement('button');
+            btn.textContent = '↓';
+            btn.className = 'insert-button';
+            btn.onclick = () => insertBall('top', c);
+            boardContainer.appendChild(btn);
+          } else if (r === SIZE && c >= 0 && c < SIZE) {
+            const btn = document.createElement('button');
+            btn.textContent = '↑';
+            btn.className = 'insert-button';
+            btn.onclick = () => insertBall('bottom', c);
+            boardContainer.appendChild(btn);
+          } else if (c === -1 && r >= 0 && r < SIZE) {
+            const btn = document.createElement('button');
+            btn.textContent = '→';
+            btn.className = 'insert-button';
+            btn.onclick = () => insertBall('left', r);
+            boardContainer.appendChild(btn);
+          } else if (c === SIZE && r >= 0 && r < SIZE) {
+            const btn = document.createElement('button');
+            btn.textContent = '←';
+            btn.className = 'insert-button';
+            btn.onclick = () => insertBall('right', r);
+            boardContainer.appendChild(btn);
+          } else if (r >= 0 && r < SIZE && c >= 0 && c < SIZE) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            if (highlightCells.some(([hr, hc]) => hr === r && hc === c)) {
+              cell.classList.add('highlight');
+            }
+            if (board[r][c]) {
+              const ball = document.createElement('div');
+              ball.classList.add('ball', board[r][c]);
+              cell.appendChild(ball);
+            }
+            boardContainer.appendChild(cell);
+          } else {
+            const spacer = document.createElement('div');
+            spacer.style.width = '60px';
+            spacer.style.height = '60px';
+            boardContainer.appendChild(spacer);
+          }
+        }
+      }
+    }
+
+    function insertBall(direction, index) {
+      let canInsert = false;
+      if (direction === 'top') {
+        for (let r = 0; r < SIZE; r++) {
+          if (board[r][index] === null) {
+            for (let k = r; k > 0; k--) {
+              board[k][index] = board[k - 1][index];
+            }
+            board[0][index] = currentPlayer;
+            canInsert = true;
+            break;
+          }
+        }
+      } else if (direction === 'bottom') {
+        for (let r = SIZE - 1; r >= 0; r--) {
+          if (board[r][index] === null) {
+            for (let k = r; k < SIZE - 1; k++) {
+              board[k][index] = board[k + 1][index];
+            }
+            board[SIZE - 1][index] = currentPlayer;
+            canInsert = true;
+            break;
+          }
+        }
+      } else if (direction === 'left') {
+        for (let c = 0; c < SIZE; c++) {
+          if (board[index][c] === null) {
+            for (let k = c; k > 0; k--) {
+              board[index][k] = board[index][k - 1];
+            }
+            board[index][0] = currentPlayer;
+            canInsert = true;
+            break;
+          }
+        }
+      } else if (direction === 'right') {
+        for (let c = SIZE - 1; c >= 0; c--) {
+          if (board[index][c] === null) {
+            for (let k = c; k < SIZE - 1; k++) {
+              board[index][k] = board[index][k + 1];
+            }
+            board[index][SIZE - 1] = currentPlayer;
+            canInsert = true;
+            break;
+          }
+        }
+      }
+
+      if (!canInsert) {
+        alert('このラインにはこれ以上ボールを挿入できません');
+        return;
+      }
+
+      const winCells = checkWin(currentPlayer);
+      renderBoard(winCells);
+
+      if (winCells.length > 0) {
+        statusElement.textContent = `${currentPlayer === 'black' ? '黒' : '白'}の勝ち！`;
+      } else {
+        currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+        statusElement.textContent = `${currentPlayer === 'black' ? '黒' : '白'}のターンです`;
+      }
+    }
+
+    function checkWin(player) {
+  const inARow = 5;
+  // 勝利判定の4方向：右(水平)、下(垂直)、右下(斜め)、右上(斜め)
+  const directions = [
+    [0, 1],   // 水平右
+    [1, 0],   // 垂直下
+    [1, 1],   // 斜め右下
+    [-1, 1],  // 斜め右上
+  ];
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (board[r][c] !== player) continue;
+
+      for (const [dr, dc] of directions) {
+        let cells = [[r, c]];
+        let count = 1;
+
+        for (let step = 1; step < inARow; step++) {
+          const nr = r + dr * step;
+          const nc = c + dc * step;
+
+          if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) break;
+          if (board[nr][nc] === player) {
+            cells.push([nr, nc]);
+            count++;
+          } else {
+            break;
+          }
+        }
+
+        if (count === inARow) {
+          return cells;
+        }
+      }
+    }
+  }
+  return [];
+}
+
+  
+  
+  // 盤面と状態を初期化
+  function resetGame() {
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        board[r][c] = null;
+      }
+    }
+    currentPlayer = 'black';
+    statusElement.textContent = '黒のターンです';
+    renderBoard();
+  }
+  
+  // リセットボタンのクリックに対応
+  document.getElementById('reset-button').addEventListener('click', resetGame);
+
+    
+    renderBoard();
+  </script>
+</body>
+</html>
