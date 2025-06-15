@@ -1,8 +1,8 @@
 body {
-    font-family: 'Comic Sans MS', 'Arial', cursive;
+    font-family: 'Yusei Magic', sans-serif;
     text-align: center;
     background: linear-gradient(135deg, #ffe0f0, #e0f7ff);
-    color: #333;
+    color: #a74503;
     margin: 0;
     padding: 30px;
 }
@@ -43,8 +43,8 @@ td.winner {
 }
 
 td.disabled {
-    background-color: #e0e0e0;
-    color: #aaa;
+    background-color: #a58484;
+    color: #67594c;
     cursor: not-allowed;
 }
 
@@ -73,6 +73,6 @@ button:hover {
 #status {
     margin-top: 20px;
     font-size: 20px;
-    color: #3f51b5;
+    color: #351d02;
     font-weight: bold;
 }
