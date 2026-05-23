@@ -16,14 +16,12 @@
 body{
     margin:0;
     font-family:sans-serif;
-
     background:
       radial-gradient(
         circle at top,
         #1f2937,
         #0d1117
       );
-
     color:white;
     min-height:100vh;
 }
@@ -56,13 +54,13 @@ h1{
     max-width:1000px;
 
     border-radius:28px;
-    padding:28px;
+    padding:24px;
 
     background:
-      rgba(255,255,255,0.08);
+      rgba(255,255,255,.08);
 
     border:1px solid
-      rgba(255,255,255,0.08);
+      rgba(255,255,255,.08);
 
     backdrop-filter:blur(10px);
 
@@ -73,22 +71,22 @@ h1{
 .status{
     display:flex;
     justify-content:center;
-    gap:20px;
-    margin-bottom:20px;
+    gap:18px;
     flex-wrap:wrap;
+    margin-bottom:20px;
 }
 
 .status-card{
     background:
-      rgba(255,255,255,0.08);
+      rgba(255,255,255,.08);
 
     border:1px solid
-      rgba(255,255,255,0.08);
+      rgba(255,255,255,.08);
 
     border-radius:20px;
 
-    padding:14px 24px;
-    min-width:140px;
+    padding:14px 22px;
+    min-width:130px;
 }
 
 .status-label{
@@ -143,9 +141,8 @@ button:disabled{
 
 /* メッセージ */
 #message{
-    margin:24px 0;
+    margin:22px 0;
     min-height:32px;
-
     font-size:22px;
     font-weight:bold;
 }
@@ -153,8 +150,8 @@ button:disabled{
 /* ゲームエリア */
 #gameArea{
     position:relative;
-    width:900px;
-    max-width:100%;
+    width:100%;
+    max-width:900px;
     height:360px;
     margin:auto;
 }
@@ -183,8 +180,6 @@ button:disabled{
     z-index:1;
 
     display:none;
-
-    transition:left .7s ease;
 }
 
 /* カップ */
@@ -195,7 +190,6 @@ button:disabled{
     height:180px;
 
     top:70px;
-
     cursor:pointer;
     z-index:2;
 
@@ -205,9 +199,9 @@ button:disabled{
       transform .2s ease;
 }
 
+/* カップ本体 */
 .cup::before{
     content:"";
-
     position:absolute;
     inset:0;
 
@@ -232,19 +226,17 @@ button:disabled{
     box-shadow:
       inset 0 10px 16px
       rgba(255,255,255,.08),
-
       inset 0 -20px 20px
       rgba(0,0,0,.25),
-
       0 8px 30px
       rgba(0,0,0,.4);
 }
 
+/* カップのフチ */
 .cup::after{
     content:"";
 
     position:absolute;
-
     top:-8px;
     left:16px;
 
@@ -259,44 +251,46 @@ button:disabled{
         #f87171,
         #b91c1c
       );
-
-    box-shadow:
-      inset 0 3px 6px
-      rgba(255,255,255,.25);
 }
 
-.cup:hover{
-    transform:translateY(-6px);
-}
-
-/* スマホ */
+/* スマホ対応 */
 @media(max-width:600px){
 
     h1{
         font-size:26px;
     }
 
-    #gameArea{
-        height:320px;
-    }
-
-    .cup{
-        width:110px;
-        height:150px;
-    }
-
-    .cup::after{
-        width:88px;
-        left:11px;
-    }
-
-    .ball{
-        width:38px;
-        height:38px;
+    .game-panel{
+        padding:18px;
     }
 
     #message{
         font-size:18px;
+    }
+
+    #gameArea{
+        height:280px;
+    }
+
+    .cup{
+        width:90px;
+        height:120px;
+    }
+
+    .cup::after{
+        width:68px;
+        left:11px;
+        height:18px;
+    }
+
+    .ball{
+        width:30px;
+        height:30px;
+        top:150px;
+    }
+
+    .status-value{
+        font-size:20px;
     }
 }
 
@@ -315,105 +309,126 @@ button:disabled{
 
 <div class="container">
 
-    <div class="game-panel">
+<div class="game-panel">
 
-        <div class="status">
+<div class="status">
 
-            <div class="status-card">
-                <div class="status-label">
-                    LEVEL
-                </div>
+<div class="status-card">
+<div class="status-label">
+LEVEL
+</div>
 
-                <div
-                    class="status-value"
-                    id="levelDisplay">
-                    1
-                </div>
-            </div>
+<div
+class="status-value"
+id="levelDisplay">
+1
+</div>
+</div>
 
-            <div class="status-card">
-                <div class="status-label">
-                    シャッフル速度
-                </div>
+<div class="status-card">
+<div class="status-label">
+速度
+</div>
 
-                <div
-                    class="status-value"
-                    id="speedDisplay">
-                    1x
-                </div>
-            </div>
+<div
+class="status-value"
+id="speedDisplay">
+1x
+</div>
+</div>
 
-        </div>
+</div>
 
-        <button id="startBtn">
-            ゲーム開始
-        </button>
+<button id="startBtn">
+ゲーム開始
+</button>
 
-        <div id="message"></div>
+<div id="message"></div>
 
-        <div id="gameArea">
+<div id="gameArea">
 
-            <div
-                class="ball"
-                id="ball">
-            </div>
+<div
+class="ball"
+id="ball">
+</div>
 
-            <div class="cup"
-                 data-index="0"></div>
+<div class="cup"
+data-index="0"></div>
 
-            <div class="cup"
-                 data-index="1"></div>
+<div class="cup"
+data-index="1"></div>
 
-            <div class="cup"
-                 data-index="2"></div>
+<div class="cup"
+data-index="2"></div>
 
-        </div>
-
-    </div>
-
+</div>
+</div>
 </div>
 
 <script>
 
 const cups =
-    [...document.querySelectorAll(".cup")];
+[...document.querySelectorAll(".cup")];
 
 const ball =
-    document.getElementById("ball");
+document.getElementById("ball");
+
+const gameArea =
+document.getElementById("gameArea");
 
 const startBtn =
-    document.getElementById("startBtn");
+document.getElementById("startBtn");
 
 const message =
-    document.getElementById("message");
+document.getElementById("message");
 
 const levelDisplay =
-    document.getElementById(
-        "levelDisplay"
-    );
+document.getElementById(
+"levelDisplay"
+);
 
 const speedDisplay =
-    document.getElementById(
-        "speedDisplay"
-    );
-
-/* カップ位置 */
-const positions =
-    [120,380,640];
+document.getElementById(
+"speedDisplay"
+);
 
 let cupOrder =
-    [0,1,2];
+[0,1,2];
 
 let ballCup = 0;
-
-let canSelect =
-    false;
-
-/* レベル */
+let canSelect = false;
 let level = 1;
+
+/* 位置を自動計算 */
+function getPositions(){
+
+    const width =
+        gameArea.clientWidth;
+
+    const cupWidth =
+        cups[0].offsetWidth;
+
+    const left =
+        width * 0.15;
+
+    const center =
+        width * 0.5;
+
+    const right =
+        width * 0.85;
+
+    return [
+        left - cupWidth/2,
+        center - cupWidth/2,
+        right - cupWidth/2
+    ];
+}
 
 /* 描画 */
 function render(showBall=false){
+
+    const positions =
+        getPositions();
 
     cups.forEach((cup,i)=>{
 
@@ -428,15 +443,39 @@ function render(showBall=false){
             : "70px";
     });
 
+    const cupWidth =
+        cups[0].offsetWidth;
+
+    const ballSize =
+        ball.offsetWidth;
+
     const ballPos =
         cupOrder[ballCup];
 
     ball.style.left =
         positions[ballPos]
-        + 50 + "px";
+        +
+        (
+            cupWidth/2
+            -
+            ballSize/2
+        )
+        + "px";
 }
 
-/* UI更新 */
+/* リサイズ時 */
+window.addEventListener(
+"resize",
+()=>render(false)
+);
+
+function sleep(ms){
+    return new Promise(
+        resolve =>
+        setTimeout(resolve,ms)
+    );
+}
+
 function updateStatus(){
 
     levelDisplay.textContent =
@@ -446,55 +485,39 @@ function updateStatus(){
         `${level}x`;
 }
 
-/* 待機 */
-function sleep(ms){
-    return new Promise(resolve=>
-        setTimeout(resolve,ms)
-    );
-}
-
-/* レベルに応じた速度 */
 function getShuffleSpeed(){
-
-    /* Lv1=700ms
-       Lv10=250ms */
 
     return Math.max(
         250,
-        700 - ((level - 1) * 50)
+        700 -
+        ((level-1)*50)
     );
 }
 
 /* シャッフル */
 async function shuffle(){
 
-    canSelect = false;
-
-    message.textContent =
-        `🔄 シャッフル中... (Lv.${level})`;
+    canSelect=false;
 
     const speed =
         getShuffleSpeed();
 
-    /* カップ移動速度変更 */
+    message.textContent =
+        `🔄 シャッフル中 (Lv.${level})`;
+
     cups.forEach(cup=>{
 
         cup.style.transition =
-            `
-            left ${speed}ms ease,
-            top .5s ease,
-            transform .2s ease
-            `;
+        `
+        left ${speed}ms ease,
+        top .5s ease
+        `;
     });
 
-    ball.style.transition =
-        `left ${speed}ms ease`;
-
-    /* レベルが上がるほど回数増加 */
-    const shuffleCount =
+    const count =
         10 + level;
 
-    for(let i=0;i<shuffleCount;i++){
+    for(let i=0;i<count;i++){
 
         let a =
             Math.floor(
@@ -512,10 +535,9 @@ async function shuffle(){
         while(a===b);
 
         [cupOrder[a],
-         cupOrder[b]] =
-
+        cupOrder[b]] =
         [cupOrder[b],
-         cupOrder[a]];
+        cupOrder[a]];
 
         render(false);
 
@@ -523,9 +545,9 @@ async function shuffle(){
     }
 
     message.textContent =
-        "🤔 どのカップにボールがある？";
+        "🤔 どのカップ？";
 
-    canSelect = true;
+    canSelect=true;
 }
 
 /* 開始 */
@@ -533,27 +555,18 @@ startBtn.addEventListener(
 "click",
 async ()=>{
 
-    startBtn.disabled =
-        true;
+    startBtn.disabled=true;
+    canSelect=false;
 
-    canSelect =
-        false;
-
-    cups.forEach(cup=>{
-        cup.style.top =
-            "70px";
-    });
-
-    message.textContent =
-        "👀 ボールの場所を確認！";
-
-    cupOrder =
-        [0,1,2];
+    cupOrder=[0,1,2];
 
     ballCup =
-        Math.floor(
-            Math.random()*3
-        );
+    Math.floor(
+        Math.random()*3
+    );
+
+    message.textContent =
+        "👀 ボールを確認！";
 
     ball.style.display =
         "block";
@@ -563,7 +576,7 @@ async ()=>{
     await sleep(1500);
 
     message.textContent =
-        "🥤 カップに隠します…";
+        "🥤 隠します…";
 
     render(false);
 
@@ -574,84 +587,65 @@ async ()=>{
 
     await shuffle();
 
-    startBtn.disabled =
-        false;
+    startBtn.disabled=false;
 });
 
 /* 回答 */
 cups.forEach(
-(cup,clickedIndex)=>{
+(cup,index)=>{
 
-    cup.addEventListener(
-    "click",
-    ()=>{
+cup.addEventListener(
+"click",
+()=>{
 
-        if(!canSelect)
-            return;
+if(!canSelect)
+return;
 
-        canSelect =
-            false;
+canSelect=false;
 
-        const selected =
-            cupOrder[
-                clickedIndex
-            ];
+const selected =
+cupOrder[index];
 
-        const correct =
-            cupOrder[
-                ballCup
-            ];
+const correct =
+cupOrder[ballCup];
 
-        /* ボール表示 */
-        ball.style.display =
-            "block";
+ball.style.display =
+"block";
 
-        ball.style.left =
-            positions[
-                correct
-            ]
-            + 50 + "px";
+render(false);
 
-        /* 正解カップ持ち上げ */
-        const correctCup =
-            cupOrder.indexOf(
-                correct
-            );
+const correctCup =
+cupOrder.indexOf(
+correct
+);
 
-        cups[
-            correctCup
-        ].style.top =
-            "20px";
+cups[
+correctCup
+].style.top =
+"20px";
 
-        if(
-            selected
-            ===
-            correct
-        ){
+if(selected===correct){
 
-            if(level < 10){
-                level++;
-            }
+if(level<10){
+level++;
+}
 
-            updateStatus();
+message.textContent =
+level===10
+?
+"🏆 正解！レベルMAX！"
+:
+`🎉 正解！Lv.${level}`;
 
-            if(level === 10){
-                message.textContent =
-                    "🏆 正解！レベルMAX(10)！";
-            }
-            else{
-                message.textContent =
-                    `🎉 正解！レベル ${level} にアップ！`;
-            }
-        }
-        else{
+}else{
 
-            message.textContent =
-                `❌ ハズレ！ レベル ${level}`;
+message.textContent =
+"❌ ハズレ！";
+}
 
-        }
+updateStatus();
 
-    });
+});
 });
 
 updateStatus();
