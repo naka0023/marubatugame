@@ -5,97 +5,293 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ペンタロール</title>
   <style>
-    body {
-      font-family: 'Yusei Magic', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background-color: #fffde7;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      margin-bottom: 10px;
-      color: #f57f17;
-      text-shadow: 1px 1px 0 #fff;
-    }
-    #board-container {
-      display: grid;
-      grid-template-columns: 30px repeat(6, 30px) 30px;
-      grid-template-rows: 30px repeat(6, 30px) 30px;
-      gap: 2px;
-      margin-bottom: 20px;
-      background-color: #fff8e1;
-      border: 3px solid #ffca28;
-      border-radius: 10px;
-      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    .cell {
-      width: 30px;
-      height: 30px;
-      background-color: #fff;
-      border: 1px solid #ffecb3;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .ball {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-    }
-    .black {
-      background-color: #f57f17;
-    }
-    .white {
-      background-color: #fff59d;
-      border: 1px solid #fbc02d;
-    }
-    .insert-button {
-      width: 30px;
-      height: 30px;
-      font-size: 14px;
-      font-weight: bold;
-      padding: 0;
-      margin: 0;
-      cursor: pointer;
-      background-color: #fff176;
-      border: 1px solid #fdd835;
-      border-radius: 5px;
-      color: #5d4037;
-    }
-    .insert-button:hover {
-      background-color: #ffee58;
-    }
-    .highlight {
-      background-color: #fff9c4 !important;
-    }
-    #status {
-      font-size: 18px;
-      color: #f57f17;
-      margin: 10px;
-    }
-    #reset-button {
-      margin-bottom: 20px;
-      padding: 10px 20px;
-      font-size: 18px;
-      cursor: pointer;
-      background-color: #ffca28;
-      border: none;
-      border-radius: 5px;
-      color: #5d4037;
-      box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
-    }
-    #reset-button:hover {
-      background-color: #ffd54f;
-    }
+    *{
+  box-sizing:border-box;
+}
+
+body{
+  font-family:'Yusei Magic',sans-serif;
+
+  margin:0;
+  min-height:100vh;
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  padding:20px;
+
+  color:white;
+
+  background:
+    radial-gradient(circle at top,
+    #1f2937,#0d1117);
+}
+
+/* ガラス風コンテナ */
+.container{
+
+  width:100%;
+  max-width:700px;
+
+  text-align:center;
+
+  background:
+    rgba(255,255,255,.08);
+
+  border:
+    1px solid rgba(255,255,255,.08);
+
+  border-radius:32px;
+
+  padding:28px;
+
+  backdrop-filter:blur(14px);
+
+  box-shadow:
+    0 0 30px rgba(0,255,255,.08);
+}
+
+h1{
+  margin:0 0 24px;
+  font-size:32px;
+}
+
+/* ボード */
+#board-container{
+
+  display:grid;
+
+  grid-template-columns:
+    40px repeat(6,60px) 40px;
+
+  grid-template-rows:
+    40px repeat(6,60px) 40px;
+
+  gap:8px;
+
+  justify-content:center;
+}
+
+/* マス */
+.cell{
+
+  width:60px;
+  height:60px;
+
+  border-radius:18px;
+
+  background:
+    rgba(255,255,255,.06);
+
+  border:
+    1px solid rgba(255,255,255,.08);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  transition:.2s;
+}
+
+.cell:hover{
+  box-shadow:
+    0 0 18px rgba(0,255,255,.18);
+}
+
+/* 勝利セル */
+.highlight{
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(245,158,11,.35),
+      rgba(239,68,68,.25)
+    ) !important;
+
+  border:
+    2px solid #ff8a65;
+
+  box-shadow:
+    0 0 18px rgba(255,120,80,.5);
+}
+
+/* 石 */
+.ball{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+}
+
+.black{
+  background:
+    linear-gradient(
+      135deg,
+      #ef4444,
+      #f59e0b
+    );
+
+  box-shadow:
+    0 0 14px rgba(239,68,68,.5);
+}
+
+.white{
+  background:
+    linear-gradient(
+      135deg,
+      #f3f4f6,
+      #9ca3af
+    );
+
+  border:
+    2px solid rgba(255,255,255,.3);
+}
+
+/* 矢印ボタン */
+.insert-button{
+
+  width:40px;
+  height:40px;
+
+  border:none;
+  border-radius:14px;
+
+  cursor:pointer;
+
+  color:white;
+  font-size:18px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #8b5cf6,
+      #2563eb
+    );
+
+  transition:.2s;
+}
+
+.insert-button:hover{
+  transform:translateY(-2px);
+
+  box-shadow:
+    0 0 18px rgba(99,102,241,.5);
+}
+
+.insert-button:active{
+  transform:scale(.95);
+}
+
+/* ステータス */
+#status{
+  margin-top:22px;
+  font-size:20px;
+}
+
+/* リセット */
+#reset-button{
+
+  margin-top:20px;
+
+  padding:14px 22px;
+
+  border:none;
+  border-radius:20px;
+
+  font-size:16px;
+
+  cursor:pointer;
+
+  color:white;
+
+  background:
+    linear-gradient(
+      135deg,
+      #8b5cf6,
+      #2563eb
+    );
+
+  transition:.2s;
+}
+
+#reset-button:hover{
+  transform:translateY(-2px);
+
+  box-shadow:
+    0 0 20px rgba(99,102,241,.4);
+}
+
+#reset-button:active{
+  transform:scale(.97);
+}
+
+/* スマホ */
+@media(max-width:600px){
+
+  .container{
+    padding:20px;
+  }
+
+  h1{
+    font-size:28px;
+  }
+
+  #board-container{
+
+    grid-template-columns:
+      34px repeat(6,48px) 34px;
+
+    grid-template-rows:
+      34px repeat(6,48px) 34px;
+
+    gap:6px;
+  }
+
+  .cell{
+    width:48px;
+    height:48px;
+  }
+
+  .ball{
+    width:28px;
+    height:28px;
+  }
+
+  .insert-button{
+    width:34px;
+    height:34px;
+    font-size:14px;
+  }
+
+  #reset-button{
+    width:100%;
+  }
+}
   </style>
 </head>
 <body>
-  <h1>ペンタロール</h1>
-  <div id="board-container"></div>
-  <div id="status">黒のターンです</div>
-  <button id="reset-button">リセット</button>
+  <div class="container">
+
+    <!-- 上段 -->
+    <header class="header-area">
+      <h1>🎲 ペンタロール</h1>
+    </header>
+
+    <!-- 中段 -->
+    <main class="game-area">
+      <div id="board-container"></div>
+    </main>
+
+    <!-- 下段 -->
+    <footer class="status-area">
+      <div id="status">オレンジのターンです</div>
+
+      <button id="reset-button">
+        リセット
+      </button>
+    </footer>
+
+  </div>
 
   <script>
     const SIZE = 6;
@@ -211,10 +407,10 @@
       renderBoard(winCells);
 
       if (winCells.length > 0) {
-        statusElement.textContent = `${currentPlayer === 'black' ? '黒' : '白'}の勝ち！`;
+        statusElement.textContent = `${currentPlayer === 'black' ? 'オレンジ' : '白'}の勝ち！`;
       } else {
         currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
-        statusElement.textContent = `${currentPlayer === 'black' ? '黒' : '白'}のターンです`;
+        statusElement.textContent = `${currentPlayer === 'black' ? 'オレンジ' : '白'}のターンです`;
       }
     }
 
@@ -248,7 +444,7 @@
         }
       }
       currentPlayer = 'black';
-      statusElement.textContent = '黒のターンです';
+      statusElement.textContent = 'オレンジのターンです';
       renderBoard();
     }
 
