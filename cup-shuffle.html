@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>カップシャッフルゲーム</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:sans-serif;
+
+    background:
+      radial-gradient(
+        circle at top,
+        #1f2937,
+        #0d1117
+      );
+
+    color:white;
+    min-height:100vh;
+}
+
+/* ヘッダー */
+header{
+    text-align:center;
+    padding:30px 20px 10px;
+}
+
+h1{
+    margin:0;
+    font-size:32px;
+}
+
+.sub{
+    margin-top:8px;
+    opacity:.7;
+}
+
+/* メイン */
+.container{
+    padding:20px;
+    display:flex;
+    justify-content:center;
+}
+
+.game-panel{
+    width:100%;
+    max-width:1000px;
+
+    border-radius:28px;
+    padding:28px;
+
+    background:
+      rgba(255,255,255,0.08);
+
+    border:1px solid
+      rgba(255,255,255,0.08);
+
+    backdrop-filter:blur(10px);
+
+    text-align:center;
+}
+
+/* ステータス */
+.status{
+    display:flex;
+    justify-content:center;
+    gap:20px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+}
+
+.status-card{
+    background:
+      rgba(255,255,255,0.08);
+
+    border:1px solid
+      rgba(255,255,255,0.08);
+
+    border-radius:20px;
+
+    padding:14px 24px;
+    min-width:140px;
+}
+
+.status-label{
+    opacity:.7;
+    font-size:14px;
+}
+
+.status-value{
+    margin-top:6px;
+    font-size:24px;
+    font-weight:bold;
+}
+
+/* ボタン */
+button{
+    border:none;
+    cursor:pointer;
+
+    color:white;
+    font-size:18px;
+    font-weight:bold;
+
+    padding:14px 28px;
+    border-radius:20px;
+
+    background:
+      linear-gradient(
+        135deg,
+        #06b6d4,
+        #2563eb
+      );
+
+    transition:.2s;
+}
+
+button:hover{
+    transform:translateY(-3px);
+
+    box-shadow:
+      0 0 30px
+      rgba(0,255,255,.2);
+}
+
+button:active{
+    transform:scale(.96);
+}
+
+button:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
+
+/* メッセージ */
+#message{
+    margin:24px 0;
+    min-height:32px;
+
+    font-size:22px;
+    font-weight:bold;
+}
+
+/* ゲームエリア */
+#gameArea{
+    position:relative;
+    width:900px;
+    max-width:100%;
+    height:360px;
+    margin:auto;
+}
+
+/* ボール */
+.ball{
+    position:absolute;
+
+    width:48px;
+    height:48px;
+
+    border-radius:50%;
+
+    background:
+      radial-gradient(
+        circle at 30% 30%,
+        #fde68a,
+        #f59e0b
+      );
+
+    box-shadow:
+      0 0 20px
+      rgba(255,215,0,.5);
+
+    top:190px;
+    z-index:1;
+
+    display:none;
+
+    transition:left .7s ease;
+}
+
+/* カップ */
+.cup{
+    position:absolute;
+
+    width:150px;
+    height:180px;
+
+    top:70px;
+
+    cursor:pointer;
+    z-index:2;
+
+    transition:
+      left .7s ease,
+      top .5s ease,
+      transform .2s ease;
+}
+
+.cup::before{
+    content:"";
+
+    position:absolute;
+    inset:0;
+
+    clip-path:
+      polygon(
+        18% 0%,
+        82% 0%,
+        100% 100%,
+        0% 100%
+      );
+
+    background:
+      linear-gradient(
+        180deg,
+        #ef4444,
+        #b91c1c
+      );
+
+    border:4px solid
+      rgba(255,255,255,.12);
+
+    box-shadow:
+      inset 0 10px 16px
+      rgba(255,255,255,.08),
+
+      inset 0 -20px 20px
+      rgba(0,0,0,.25),
+
+      0 8px 30px
+      rgba(0,0,0,.4);
+}
+
+.cup::after{
+    content:"";
+
+    position:absolute;
+
+    top:-8px;
+    left:16px;
+
+    width:118px;
+    height:24px;
+
+    border-radius:999px;
+
+    background:
+      linear-gradient(
+        180deg,
+        #f87171,
+        #b91c1c
+      );
+
+    box-shadow:
+      inset 0 3px 6px
+      rgba(255,255,255,.25);
+}
+
+.cup:hover{
+    transform:translateY(-6px);
+}
+
+/* スマホ */
+@media(max-width:600px){
+
+    h1{
+        font-size:26px;
+    }
+
+    #gameArea{
+        height:320px;
+    }
+
+    .cup{
+        width:110px;
+        height:150px;
+    }
+
+    .cup::after{
+        width:88px;
+        left:11px;
+    }
+
+    .ball{
+        width:38px;
+        height:38px;
+    }
+
+    #message{
+        font-size:18px;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🥤 カップシャッフルゲーム</h1>
+
+    <div class="sub">
+        正解してレベル10を目指そう！
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="game-panel">
+
+        <div class="status">
+
+            <div class="status-card">
+                <div class="status-label">
+                    LEVEL
+                </div>
+
+                <div
+                    class="status-value"
+                    id="levelDisplay">
+                    1
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-label">
+                    シャッフル速度
+                </div>
+
+                <div
+                    class="status-value"
+                    id="speedDisplay">
+                    1x
+                </div>
+            </div>
+
+        </div>
+
+        <button id="startBtn">
+            ゲーム開始
+        </button>
+
+        <div id="message"></div>
+
+        <div id="gameArea">
+
+            <div
+                class="ball"
+                id="ball">
+            </div>
+
+            <div class="cup"
+                 data-index="0"></div>
+
+            <div class="cup"
+                 data-index="1"></div>
+
+            <div class="cup"
+                 data-index="2"></div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+const cups =
+    [...document.querySelectorAll(".cup")];
+
+const ball =
+    document.getElementById("ball");
+
+const startBtn =
+    document.getElementById("startBtn");
+
+const message =
+    document.getElementById("message");
+
+const levelDisplay =
+    document.getElementById(
+        "levelDisplay"
+    );
+
+const speedDisplay =
+    document.getElementById(
+        "speedDisplay"
+    );
+
+/* カップ位置 */
+const positions =
+    [120,380,640];
+
+let cupOrder =
+    [0,1,2];
+
+let ballCup = 0;
+
+let canSelect =
+    false;
+
+/* レベル */
+let level = 1;
+
+/* 描画 */
+function render(showBall=false){
+
+    cups.forEach((cup,i)=>{
+
+        cup.style.left =
+            positions[
+                cupOrder[i]
+            ] + "px";
+
+        cup.style.top =
+            showBall
+            ? "20px"
+            : "70px";
+    });
+
+    const ballPos =
+        cupOrder[ballCup];
+
+    ball.style.left =
+        positions[ballPos]
+        + 50 + "px";
+}
+
+/* UI更新 */
+function updateStatus(){
+
+    levelDisplay.textContent =
+        level;
+
+    speedDisplay.textContent =
+        `${level}x`;
+}
+
+/* 待機 */
+function sleep(ms){
+    return new Promise(resolve=>
+        setTimeout(resolve,ms)
+    );
+}
+
+/* レベルに応じた速度 */
+function getShuffleSpeed(){
+
+    /* Lv1=700ms
+       Lv10=250ms */
+
+    return Math.max(
+        250,
+        700 - ((level - 1) * 50)
+    );
+}
+
+/* シャッフル */
+async function shuffle(){
+
+    canSelect = false;
+
+    message.textContent =
+        `🔄 シャッフル中... (Lv.${level})`;
+
+    const speed =
+        getShuffleSpeed();
+
+    /* カップ移動速度変更 */
+    cups.forEach(cup=>{
+
+        cup.style.transition =
+            `
+            left ${speed}ms ease,
+            top .5s ease,
+            transform .2s ease
+            `;
+    });
+
+    ball.style.transition =
+        `left ${speed}ms ease`;
+
+    /* レベルが上がるほど回数増加 */
+    const shuffleCount =
+        10 + level;
+
+    for(let i=0;i<shuffleCount;i++){
+
+        let a =
+            Math.floor(
+                Math.random()*3
+            );
+
+        let b;
+
+        do{
+            b =
+            Math.floor(
+                Math.random()*3
+            );
+        }
+        while(a===b);
+
+        [cupOrder[a],
+         cupOrder[b]] =
+
+        [cupOrder[b],
+         cupOrder[a]];
+
+        render(false);
+
+        await sleep(speed);
+    }
+
+    message.textContent =
+        "🤔 どのカップにボールがある？";
+
+    canSelect = true;
+}
+
+/* 開始 */
+startBtn.addEventListener(
+"click",
+async ()=>{
+
+    startBtn.disabled =
+        true;
+
+    canSelect =
+        false;
+
+    cups.forEach(cup=>{
+        cup.style.top =
+            "70px";
+    });
+
+    message.textContent =
+        "👀 ボールの場所を確認！";
+
+    cupOrder =
+        [0,1,2];
+
+    ballCup =
+        Math.floor(
+            Math.random()*3
+        );
+
+    ball.style.display =
+        "block";
+
+    render(true);
+
+    await sleep(1500);
+
+    message.textContent =
+        "🥤 カップに隠します…";
+
+    render(false);
+
+    await sleep(700);
+
+    ball.style.display =
+        "none";
+
+    await shuffle();
+
+    startBtn.disabled =
+        false;
+});
+
+/* 回答 */
+cups.forEach(
+(cup,clickedIndex)=>{
+
+    cup.addEventListener(
+    "click",
+    ()=>{
+
+        if(!canSelect)
+            return;
+
+        canSelect =
+            false;
+
+        const selected =
+            cupOrder[
+                clickedIndex
+            ];
+
+        const correct =
+            cupOrder[
+                ballCup
+            ];
+
+        /* ボール表示 */
+        ball.style.display =
+            "block";
+
+        ball.style.left =
+            positions[
+                correct
+            ]
+            + 50 + "px";
+
+        /* 正解カップ持ち上げ */
+        const correctCup =
+            cupOrder.indexOf(
+                correct
+            );
+
+        cups[
+            correctCup
+        ].style.top =
+            "20px";
+
+        if(
+            selected
+            ===
+            correct
+        ){
+
+            if(level < 10){
+                level++;
+            }
+
+            updateStatus();
+
+            if(level === 10){
+                message.textContent =
+                    "🏆 正解！レベルMAX(10)！";
+            }
+            else{
+                message.textContent =
+                    `🎉 正解！レベル ${level} にアップ！`;
+            }
+        }
+        else{
+
+            message.textContent =
+                `❌ ハズレ！ レベル ${level}`;
+
+        }
+
+    });
+});
+
+updateStatus();
+render(false);
+
+</script>
+
+</body>
+</html>

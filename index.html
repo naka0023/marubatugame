@@ -16,9 +16,14 @@
 body{
     margin:0;
     font-family:sans-serif;
+
     background:
-      radial-gradient(circle at top,
-      #1f2937,#0d1117);
+      radial-gradient(
+        circle at top,
+        #1f2937,
+        #0d1117
+      );
+
     color:white;
     min-height:100vh;
 }
@@ -46,8 +51,13 @@ h1{
 
 .game-list{
     display:grid;
+
     grid-template-columns:
-      repeat(auto-fit,minmax(160px,1fr));
+      repeat(
+        auto-fit,
+        minmax(160px,1fr)
+      );
+
     gap:18px;
 }
 
@@ -107,7 +117,8 @@ h1{
     font-size:42px;
 
     box-shadow:
-      0 8px 20px rgba(0,0,0,.3);
+      0 8px 20px
+      rgba(0,0,0,.3);
 }
 
 /* 色 */
@@ -126,6 +137,25 @@ h1{
         135deg,
         #8b5cf6,
         #2563eb
+      );
+}
+
+.hidden-timer{
+    background:
+      linear-gradient(
+        135deg,
+        #06b6d4,
+        #2563eb
+      );
+}
+
+/* カップシャッフル */
+.cup-shuffle{
+    background:
+      linear-gradient(
+        135deg,
+        #dc2626,
+        #991b1b
       );
 }
 
@@ -170,21 +200,16 @@ h1{
     }
 }
 
-.hidden-timer{
-    background:
-      linear-gradient(
-        135deg,
-        #06b6d4,
-        #2563eb
-      );
-}
 </style>
 </head>
 
 <body>
 
 <header>
-    <h1>🎮 GAME PORTAL</h1>
+    <h1>
+        🎮 GAME PORTAL
+    </h1>
+
     <div class="sub">
         好きなゲームをすぐ起動
     </div>
@@ -208,7 +233,8 @@ h1{
             </div>
 
             <div class="game-desc">
-                新感覚○×ゲーム！途中から消えていく！
+                新感覚○×ゲーム！
+                途中から消えていく！
             </div>
 
         </a>
@@ -227,15 +253,16 @@ h1{
             </div>
 
             <div class="game-desc">
-                新感覚5目並べ！端からボールを入れていこう！
+                新感覚5目並べ！
+                端からボールを入れていこう！
             </div>
 
         </a>
 
         <!-- 隠しタイマーゲーム -->
         <a class="game-card"
-        href="https://naka0023.github.io/marubatugame/hidden-timer.html"
-        target="_blank">
+           href="https://naka0023.github.io/marubatugame/hidden-timer.html"
+           target="_blank">
 
             <div class="game-icon hidden-timer">
                 ⏱
@@ -246,7 +273,28 @@ h1{
             </div>
 
             <div class="game-desc">
-                時間を読み切れ！超えた瞬間に負け！
+                時間を読み切れ！
+                超えた瞬間に負け！
+            </div>
+
+        </a>
+
+        <!-- カップシャッフルゲーム -->
+        <a class="game-card"
+           href="https://naka0023.github.io/marubatugame/cup-shuffle.html"
+           target="_blank">
+
+            <div class="game-icon cup-shuffle">
+                🥤
+            </div>
+
+            <div class="game-name">
+                カップシャッフル
+            </div>
+
+            <div class="game-desc">
+                ボールを見失うな！
+                正解してレベル10を目指せ！
             </div>
 
         </a>
