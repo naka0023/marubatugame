@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Yusei Magic のGoogle Fonts読み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&display=swap" rel="stylesheet">
+
+    <title>三目並べゲーム（新ルール）</title>
+    <a href="https://naka0023.github.io/marubatugame/index2.html">2つ目のゲーム</a>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        table {
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+        td {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #333;
+            font-size: 36px;
+            cursor: pointer;
+            text-align: center;
+            vertical-align: middle;
+        }
+        td.winner {
+            background-color: #ffeb3b;
+        }
+        td.disabled {
+            background-color: #d3d3d3;
+            cursor: not-allowed;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <h1>〇×ゲーム（新ルール）</h1>
+    <table id="board">
+        <tr>
+            <td data-index="0"></td>
+            <td data-index="1"></td>
+            <td data-index="2"></td>
+        </tr>
+        <tr>
+            <td data-index="3"></td>
+            <td data-index="4"></td>
+            <td data-index="5"></td>
+        </tr>
+        <tr>
+            <td data-index="6"></td>
+            <td data-index="7"></td>
+            <td data-index="8"></td>
+        </tr>
+    </table>
+    <button onclick="resetGame()">ゲームをリセット</button>
+    <p id="status">プレイヤーXのターンです</p>
+    <script src="script.js"></script>
+
+    <audio id="btn_audio">
+        <source src="./audio/btn_audio.mp3" type="audio/mp3">
+    </audio>
+</body>
+</html>

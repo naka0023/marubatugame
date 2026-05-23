@@ -1,79 +1,249 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Yusei Magic のGoogle Fonts読み込み -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-    <title>三目並べゲーム（新ルール）</title>
-    <a href="https://naka0023.github.io/marubatugame/index2.html">2つ目のゲーム</a>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
-        }
-        table {
-            margin: 0 auto;
-            border-collapse: collapse;
-        }
-        td {
-            width: 100px;
-            height: 100px;
-            border: 1px solid #333;
-            font-size: 36px;
-            cursor: pointer;
-            text-align: center;
-            vertical-align: middle;
-        }
-        td.winner {
-            background-color: #ffeb3b;
-        }
-        td.disabled {
-            background-color: #d3d3d3;
-            cursor: not-allowed;
-        }
-        button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        #status {
-            margin-top: 20px;
-            font-size: 18px;
-        }
-    </style>
-    <link href="style.css" rel="stylesheet">
+<title>Game Portal</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:
+      radial-gradient(circle at top,
+      #1f2937,#0d1117);
+    color:white;
+    min-height:100vh;
+}
+
+/* ヘッダー */
+header{
+    text-align:center;
+    padding:30px 20px 10px;
+}
+
+h1{
+    margin:0;
+    font-size:32px;
+}
+
+.sub{
+    margin-top:8px;
+    opacity:.7;
+}
+
+/* コンテンツ */
+.container{
+    padding:20px;
+}
+
+.game-list{
+    display:grid;
+    grid-template-columns:
+      repeat(auto-fit,minmax(160px,1fr));
+    gap:18px;
+}
+
+/* カード */
+.game-card,
+.game-card-disabled{
+
+    border-radius:28px;
+    padding:20px;
+    text-align:center;
+
+    background:
+      rgba(255,255,255,0.08);
+
+    border:1px solid
+      rgba(255,255,255,0.08);
+
+    backdrop-filter:blur(10px);
+}
+
+.game-card{
+    text-decoration:none;
+    color:white;
+    transition:.2s;
+}
+
+.game-card:hover{
+    transform:translateY(-4px);
+
+    box-shadow:
+      0 0 30px
+      rgba(0,255,255,.15);
+}
+
+.game-card:active{
+    transform:scale(.96);
+}
+
+/* 近日公開 */
+.game-card-disabled{
+    opacity:.7;
+}
+
+/* アイコン */
+.game-icon{
+    width:90px;
+    height:90px;
+
+    margin:auto;
+
+    border-radius:26px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:42px;
+
+    box-shadow:
+      0 8px 20px rgba(0,0,0,.3);
+}
+
+/* 色 */
+.marubatsu{
+    background:
+      linear-gradient(
+        135deg,
+        #ef4444,
+        #f97316
+      );
+}
+
+.pentaroll{
+    background:
+      linear-gradient(
+        135deg,
+        #8b5cf6,
+        #2563eb
+      );
+}
+
+.comingsoon{
+    background:
+      linear-gradient(
+        135deg,
+        #4b5563,
+        #1f2937
+      );
+}
+
+/* テキスト */
+.game-name{
+    margin-top:16px;
+    font-size:18px;
+    font-weight:bold;
+}
+
+.game-desc{
+    margin-top:8px;
+    opacity:.7;
+    font-size:14px;
+}
+
+/* スマホ */
+@media(max-width:600px){
+
+    h1{
+        font-size:26px;
+    }
+
+    .game-list{
+        grid-template-columns:
+          repeat(2,1fr);
+    }
+
+    .game-icon{
+        width:80px;
+        height:80px;
+        font-size:36px;
+    }
+}
+
+</style>
 </head>
-<body>
-    <h1>三目並べゲーム（新ルール）</h1>
-    <table id="board">
-        <tr>
-            <td data-index="0"></td>
-            <td data-index="1"></td>
-            <td data-index="2"></td>
-        </tr>
-        <tr>
-            <td data-index="3"></td>
-            <td data-index="4"></td>
-            <td data-index="5"></td>
-        </tr>
-        <tr>
-            <td data-index="6"></td>
-            <td data-index="7"></td>
-            <td data-index="8"></td>
-        </tr>
-    </table>
-    <button onclick="resetGame()">ゲームをリセット</button>
-    <p id="status">プレイヤーXのターンです</p>
-    <script src="script.js"></script>
 
-    <audio id="btn_audio">
-        <source src="./audio/btn_audio.mp3" type="audio/mp3">
-    </audio>
+<body>
+
+<header>
+    <h1>🎮 GAME PORTAL</h1>
+    <div class="sub">
+        好きなゲームをすぐ起動
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="game-list">
+
+        <!-- 〇×ゲーム -->
+        <a class="game-card"
+           href="https://naka0023.github.io/marubatugame/marubatsu.html"
+           target="_blank">
+
+            <div class="game-icon marubatsu">
+                ⭕❌
+            </div>
+
+            <div class="game-name">
+                〇×ゲーム
+            </div>
+
+            <div class="game-desc">
+                勝負しよう
+            </div>
+
+        </a>
+
+        <!-- ペンタロール -->
+        <a class="game-card"
+           href="https://naka0023.github.io/marubatugame/penta.html"
+           target="_blank">
+
+            <div class="game-icon pentaroll">
+                🎲
+            </div>
+
+            <div class="game-name">
+                ペンタロール
+            </div>
+
+            <div class="game-desc">
+                サイコロで挑戦
+            </div>
+
+        </a>
+
+        <!-- 近日公開 -->
+        <div class="game-card-disabled">
+
+            <div class="game-icon comingsoon">
+                🔒
+            </div>
+
+            <div class="game-name">
+                近日公開
+            </div>
+
+            <div class="game-desc">
+                Coming Soon...
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
 </body>
 </html>
