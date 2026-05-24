@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<title>ストップウォッチチャレンジ</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    background:radial-gradient(circle at top,#1d2c52 0%,#090b15 45%,#000 100%);
+    color:white;
+    font-family:Arial,sans-serif;
+    display:flex;
+    justify-content:center;
+    overflow-x:hidden;
+}
+
+.container{
+    width:min(92vw,560px);
+    padding:20px;
+}
+
+.title{
+    text-align:center;
+    font-size:clamp(32px,7vw,52px);
+    font-weight:900;
+    margin:20px 0;
+    text-shadow:0 0 12px #00d9ff,0 0 28px #00d9ff;
+}
+
+.panel{
+    background:rgba(255,255,255,.05);
+    border:2px solid rgba(0,217,255,.3);
+    border-radius:28px;
+    padding:26px;
+    backdrop-filter:blur(12px);
+    box-shadow:0 0 40px rgba(0,217,255,.15), inset 0 0 20px rgba(255,255,255,.04);
+}
+
+.target{
+    text-align:center;
+    font-size:22px;
+    margin-bottom:14px;
+}
+
+.mode-buttons{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.mode-btn{
+    flex:1;
+    padding:14px;
+    border:none;
+    border-radius:18px;
+    font-size:20px;
+    font-weight:900;
+    color:white;
+    cursor:pointer;
+    background:rgba(255,255,255,.12);
+}
+
+.mode-btn.active{
+    background:linear-gradient(135deg,#00e5ff,#245bff);
+    box-shadow:0 0 25px rgba(0,229,255,.5);
+}
+
+.timer{
+    font-size:clamp(60px,13vw,96px);
+    font-weight:900;
+    text-align:center;
+    min-height:110px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    margin:25px 0;
+    color:#7be9ff;
+    text-shadow:0 0 10px #00e5ff,0 0 30px #00e5ff,0 0 60px #00e5ff;
+}
+
+.buttons{
+    display:flex;
+    gap:12px;
+}
+
+button{
+    border:none;
+    border-radius:22px;
+    padding:20px;
+    font-size:24px;
+    font-weight:900;
+    color:white;
+    cursor:pointer;
+}
+
+button:active{transform:scale(.96);}
+button:disabled{opacity:.4;}
+
+.start{
+    flex:1;
+    background:linear-gradient(135deg,#00ff88,#00b86b);
+    box-shadow:0 0 30px rgba(0,255,136,.45);
+}
+
+.stop{
+    flex:1;
+    background:linear-gradient(135deg,#ff2b55,#c40028);
+    box-shadow:0 0 30px rgba(255,43,85,.45);
+}
+
+.reset{
+    width:100%;
+    margin-top:14px;
+    background:linear-gradient(135deg,#4f68ff,#243dff);
+}
+
+.result{
+    min-height:110px;
+    margin-top:20px;
+    text-align:center;
+}
+
+.rank{
+    font-size:44px;
+    font-weight:900;
+}
+
+.perfect{
+    color:#ffe44d;
+    text-shadow:0 0 10px #ffe44d,0 0 40px #ffbf00;
+    animation:pulse .8s infinite alternate;
+}
+
+.great{color:#00ffc8;}
+.good{color:#7db9ff;}
+.miss{color:#ff6a85;}
+
+.diff{
+    margin-top:8px;
+    font-size:22px;
+}
+
+.history-box{
+    margin-top:22px;
+    background:rgba(255,255,255,.05);
+    border-radius:22px;
+    padding:18px;
+}
+
+.history-title{
+    font-size:22px;
+    font-weight:bold;
+    margin-bottom:12px;
+}
+
+.history-list{
+    max-height:260px;
+    overflow-y:auto;
+}
+
+.history-item{
+    background:rgba(255,255,255,.08);
+    padding:14px;
+    border-radius:14px;
+    margin-bottom:10px;
+}
+
+@keyframes pulse{
+    from{transform:scale(1);}
+    to{transform:scale(1.08);}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="title">STOPWATCH CHALLENGE</div>
+
+<div class="panel">
+
+<div class="target" id="targetText">🎯 10秒で止めろ</div>
+
+<div class="mode-buttons">
+<button class="mode-btn active" data-sec="3">3秒</button>
+<button class="mode-btn" data-sec="5">5秒</button>
+<button class="mode-btn" data-sec="10">10秒</button>
+</div>
+
+<div class="timer" id="timer">0.000</div>
+
+<div class="buttons">
+<button id="startBtn" class="start">START</button>
+<button id="stopBtn" class="stop" disabled>STOP</button>
+</div>
+
+<button id="resetBtn" class="reset">RESET</button>
+
+<div class="result" id="result"></div>
+
+</div>
+
+<div class="history-box">
+
+<div class="history-title">🏆 プレイ履歴</div>
+<div class="history-list" id="historyList">
+<div style="opacity:.6">まだプレイ履歴はありません</div>
+</div>
+
+</div>
+
+</div>
+
+<script>
+const timerEl = document.getElementById("timer");
+const resultEl = document.getElementById("result");
+const historyList = document.getElementById("historyList");
+const targetText = document.getElementById("targetText");
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const resetBtn = document.getElementById("resetBtn");
+
+let startTime = 0;
+let running = false;
+let animationId;
+let targetSeconds = 10;
+
+document.querySelectorAll(".mode-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+        if(running) return;
+
+        document.querySelectorAll(".mode-btn")
+        .forEach(b=>b.classList.remove("active"));
+
+        btn.classList.add("active");
+
+        targetSeconds = Number(btn.dataset.sec);
+        targetText.textContent = `🎯 ${targetSeconds}秒で止めろ`;
+    });
+});
+
+function updateTimer(){
+
+    const elapsed =
+    (performance.now() - startTime) / 1000;
+
+    // 3秒モードは常に非表示
+    if(targetSeconds === 3){
+        timerEl.textContent = "???";
+        animationId = requestAnimationFrame(updateTimer);
+        return;
+    }
+
+    // 5秒・10秒は1.5秒後に非表示
+    if(elapsed < 1.5){
+        timerEl.textContent = elapsed.toFixed(3);
+    }else{
+        timerEl.textContent = "???";
+    }
+
+    animationId = requestAnimationFrame(updateTimer);
+}
+
+startBtn.onclick = ()=>{
+    if(running) return;
+
+    running = true;
+    resultEl.innerHTML = "";
+
+    startTime = performance.now();
+
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+
+    updateTimer();
+};
+
+stopBtn.onclick = ()=>{
+    if(!running) return;
+
+    running = false;
+    cancelAnimationFrame(animationId);
+
+    const finalTime = (performance.now() - startTime) / 1000;
+
+    timerEl.textContent = finalTime.toFixed(3);
+
+    const diff = finalTime - targetSeconds;
+    const abs = Math.abs(diff);
+
+    let rank = "";
+    let className = "";
+
+    if(abs <= 0.01){rank="PERFECT";className="perfect";}
+    else if(abs <= 0.10){rank="GREAT";className="great";}
+    else if(abs <= 0.30){rank="GOOD";className="good";}
+    else{rank="MISS";className="miss";}
+
+    resultEl.innerHTML = `
+        <div class="rank ${className}">${rank}</div>
+        <div class="diff">
+            目標 ${targetSeconds}秒<br>
+            誤差: ${diff>=0?"+":""}${diff.toFixed(3)} 秒
+        </div>
+    `;
+
+    if(historyList.innerText.includes("まだ")){
+        historyList.innerHTML = "";
+    }
+
+    const item = document.createElement("div");
+    item.className = "history-item";
+    item.innerHTML = `
+        🎯 ${targetSeconds}秒<br>
+        ⏱ ${finalTime.toFixed(3)} 秒<br>
+        🏅 ${rank}<br>
+        📏 ${diff>=0?"+":""}${diff.toFixed(3)} 秒
+    `;
+
+    historyList.prepend(item);
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+};
+
+resetBtn.onclick = ()=>{
+    running = false;
+    cancelAnimationFrame(animationId);
+
+    timerEl.textContent = "0.000";
+    resultEl.innerHTML = "";
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+};
+</script>
+
+</body>
+</html>
