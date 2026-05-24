@@ -51,13 +51,7 @@ h1{
 
 .game-list{
     display:grid;
-
-    grid-template-columns:
-      repeat(
-        auto-fit,
-        minmax(160px,1fr)
-      );
-
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
     gap:18px;
 }
 
@@ -69,11 +63,9 @@ h1{
     padding:20px;
     text-align:center;
 
-    background:
-      rgba(255,255,255,0.08);
+    background:rgba(255,255,255,0.08);
 
-    border:1px solid
-      rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.08);
 
     backdrop-filter:blur(10px);
 }
@@ -86,17 +78,13 @@ h1{
 
 .game-card:hover{
     transform:translateY(-4px);
-
-    box-shadow:
-      0 0 30px
-      rgba(0,255,255,.15);
+    box-shadow:0 0 30px rgba(0,255,255,.15);
 }
 
 .game-card:active{
     transform:scale(.96);
 }
 
-/* 近日公開 */
 .game-card-disabled{
     opacity:.7;
 }
@@ -105,20 +93,13 @@ h1{
 .game-icon{
     width:90px;
     height:90px;
-
     margin:auto;
-
     border-radius:26px;
-
     display:flex;
     align-items:center;
     justify-content:center;
-
     font-size:42px;
-
-    box-shadow:
-      0 8px 20px
-      rgba(0,0,0,.3);
+    box-shadow:0 8px 20px rgba(0,0,0,.3);
 }
 
 /* 色 */
@@ -138,9 +119,13 @@ h1{
     background:linear-gradient(135deg,#dc2626,#991b1b);
 }
 
-/* 🆕 フルーツ仕分け */
 .fruit-sort{
     background:linear-gradient(135deg,#22c55e,#16a34a);
+}
+
+/* 🆕 タイマーゲーム */
+.stopwatch{
+    background:linear-gradient(135deg,#06b6d4,#0ea5e9);
 }
 
 .comingsoon{
@@ -236,7 +221,7 @@ h1{
 
         </a>
 
-        <!-- 🆕 フルーツ仕分けゲーム -->
+        <!-- フルーツ仕分け -->
         <a class="game-card"
            href="https://naka0023.github.io/marubatugame/fruit-sort.html"
            target="_blank">
@@ -244,6 +229,17 @@ h1{
             <div class="game-icon fruit-sort">🍌</div>
             <div class="game-name">フルーツ仕分け</div>
             <div class="game-desc">スワイプで仕分け！反射神経ゲーム！</div>
+
+        </a>
+
+        <!-- 🆕 タイマーゲーム -->
+        <a class="game-card"
+           href="https://naka0023.github.io/marubatugame/stopwatch.html"
+           target="_blank">
+
+            <div class="game-icon stopwatch">⏱</div>
+            <div class="game-name">タイマーゲーム</div>
+            <div class="game-desc">ピッタリ止めろ！集中力チャレンジ！</div>
 
         </a>
 
