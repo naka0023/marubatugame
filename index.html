@@ -123,49 +123,28 @@ h1{
 
 /* 色 */
 .marubatsu{
-    background:
-      linear-gradient(
-        135deg,
-        #ef4444,
-        #f97316
-      );
+    background:linear-gradient(135deg,#ef4444,#f97316);
 }
 
 .pentaroll{
-    background:
-      linear-gradient(
-        135deg,
-        #8b5cf6,
-        #2563eb
-      );
+    background:linear-gradient(135deg,#8b5cf6,#2563eb);
 }
 
 .hidden-timer{
-    background:
-      linear-gradient(
-        135deg,
-        #06b6d4,
-        #2563eb
-      );
+    background:linear-gradient(135deg,#06b6d4,#2563eb);
 }
 
-/* カップシャッフル */
 .cup-shuffle{
-    background:
-      linear-gradient(
-        135deg,
-        #dc2626,
-        #991b1b
-      );
+    background:linear-gradient(135deg,#dc2626,#991b1b);
+}
+
+/* 🆕 フルーツ仕分け */
+.fruit-sort{
+    background:linear-gradient(135deg,#22c55e,#16a34a);
 }
 
 .comingsoon{
-    background:
-      linear-gradient(
-        135deg,
-        #4b5563,
-        #1f2937
-      );
+    background:linear-gradient(135deg,#4b5563,#1f2937);
 }
 
 /* テキスト */
@@ -189,8 +168,7 @@ h1{
     }
 
     .game-list{
-        grid-template-columns:
-          repeat(2,1fr);
+        grid-template-columns:repeat(2,1fr);
     }
 
     .game-icon{
@@ -206,13 +184,8 @@ h1{
 <body>
 
 <header>
-    <h1>
-        🎮 GAME PORTAL
-    </h1>
-
-    <div class="sub">
-        好きなゲームをすぐ起動
-    </div>
+    <h1>🎮 GAME PORTAL</h1>
+    <div class="sub">好きなゲームをすぐ起動</div>
 </header>
 
 <div class="container">
@@ -224,18 +197,9 @@ h1{
            href="https://naka0023.github.io/marubatugame/marubatsu.html"
            target="_blank">
 
-            <div class="game-icon marubatsu">
-                ⭕❌
-            </div>
-
-            <div class="game-name">
-                〇×ゲーム
-            </div>
-
-            <div class="game-desc">
-                新感覚○×ゲーム！
-                途中から消えていく！
-            </div>
+            <div class="game-icon marubatsu">⭕❌</div>
+            <div class="game-name">〇×ゲーム</div>
+            <div class="game-desc">新感覚○×ゲーム！途中から消えていく！</div>
 
         </a>
 
@@ -244,75 +208,51 @@ h1{
            href="https://naka0023.github.io/marubatugame/penta.html"
            target="_blank">
 
-            <div class="game-icon pentaroll">
-                🎲
-            </div>
-
-            <div class="game-name">
-                ペンタロール
-            </div>
-
-            <div class="game-desc">
-                新感覚5目並べ！
-                端からボールを入れていこう！
-            </div>
+            <div class="game-icon pentaroll">🎲</div>
+            <div class="game-name">ペンタロール</div>
+            <div class="game-desc">新感覚5目並べ！端からボールを入れていこう！</div>
 
         </a>
 
-        <!-- 隠しタイマーゲーム -->
+        <!-- 隠しタイマー -->
         <a class="game-card"
            href="https://naka0023.github.io/marubatugame/hidden-timer.html"
            target="_blank">
 
-            <div class="game-icon hidden-timer">
-                ⏱
-            </div>
-
-            <div class="game-name">
-                隠しタイマーゲーム
-            </div>
-
-            <div class="game-desc">
-                時間を読み切れ！
-                超えた瞬間に負け！
-            </div>
+            <div class="game-icon hidden-timer">⏱</div>
+            <div class="game-name">隠しタイマーゲーム</div>
+            <div class="game-desc">時間を読み切れ！超えた瞬間に負け！</div>
 
         </a>
 
-        <!-- カップシャッフルゲーム -->
+        <!-- カップシャッフル -->
         <a class="game-card"
            href="https://naka0023.github.io/marubatugame/cup-shuffle.html"
            target="_blank">
 
-            <div class="game-icon cup-shuffle">
-                🥤
-            </div>
+            <div class="game-icon cup-shuffle">🥤</div>
+            <div class="game-name">カップシャッフル</div>
+            <div class="game-desc">ボールを見失うな！レベル10を目指せ！</div>
 
-            <div class="game-name">
-                カップシャッフル
-            </div>
+        </a>
 
-            <div class="game-desc">
-                ボールを見失うな！
-                正解してレベル10を目指せ！
-            </div>
+        <!-- 🆕 フルーツ仕分けゲーム -->
+        <a class="game-card"
+           href="https://naka0023.github.io/marubatugame/fruit-sort.html"
+           target="_blank">
+
+            <div class="game-icon fruit-sort">🍌</div>
+            <div class="game-name">フルーツ仕分け</div>
+            <div class="game-desc">スワイプで仕分け！反射神経ゲーム！</div>
 
         </a>
 
         <!-- 近日公開 -->
         <div class="game-card-disabled">
 
-            <div class="game-icon comingsoon">
-                🔒
-            </div>
-
-            <div class="game-name">
-                近日公開
-            </div>
-
-            <div class="game-desc">
-                Coming Soon...
-            </div>
+            <div class="game-icon comingsoon">🔒</div>
+            <div class="game-name">近日公開</div>
+            <div class="game-desc">Coming Soon...</div>
 
         </div>
 
