@@ -189,7 +189,7 @@ button:disabled{opacity:.4;}
 
 <div class="panel">
 
-<div class="target" id="targetText">🎯 10秒で止めろ</div>
+<div class="target" id="targetText">🎯 3秒で止めろ</div>
 
 <div class="mode-buttons">
 <button class="mode-btn active" data-sec="3">3秒</button>
@@ -213,6 +213,7 @@ button:disabled{opacity:.4;}
 <div class="history-box">
 
 <div class="history-title">🏆 プレイ履歴</div>
+
 <div class="history-list" id="historyList">
 <div style="opacity:.6">まだプレイ履歴はありません</div>
 </div>
@@ -233,7 +234,8 @@ const resetBtn = document.getElementById("resetBtn");
 let startTime = 0;
 let running = false;
 let animationId;
-let targetSeconds = 10;
+
+let targetSeconds = 3; // ← 初期値修正
 
 document.querySelectorAll(".mode-btn").forEach(btn=>{
     btn.addEventListener("click",()=>{
@@ -254,18 +256,16 @@ function updateTimer(){
     const elapsed =
     (performance.now() - startTime) / 1000;
 
-    // 3秒モードは常に非表示
+    // 3秒モードは最初から非表示
     if(targetSeconds === 3){
         timerEl.textContent = "???";
-        animationId = requestAnimationFrame(updateTimer);
-        return;
-    }
-
-    // 5秒・10秒は1.5秒後に非表示
-    if(elapsed < 1.5){
-        timerEl.textContent = elapsed.toFixed(3);
     }else{
-        timerEl.textContent = "???";
+        // 5秒・10秒は1.5秒後に非表示
+        if(elapsed < 1.5){
+            timerEl.textContent = elapsed.toFixed(3);
+        }else{
+            timerEl.textContent = "???";
+        }
     }
 
     animationId = requestAnimationFrame(updateTimer);
