@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no">
+
+<title>いろちタイムアタック</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+body{
+    margin:0;
+    font-family:
+        "Hiragino Sans",
+        "Yu Gothic",
+        sans-serif;
+    background:
+        linear-gradient(135deg,#111,#222);
+    color:#fff;
+    overflow:hidden;
+}
+
+body.urgent{
+    animation:urgentFlash .8s infinite;
+}
+
+@keyframes urgentFlash{
+    0%{background:#200;}
+    50%{background:#600;}
+    100%{background:#200;}
+}
+
+#app{
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px;
+}
+
+h1{
+    margin:6px 0 10px;
+    font-size:32px;
+}
+
+.topBar{
+    width:100%;
+    display:flex;
+    gap:10px;
+}
+
+.statBox{
+    flex:1;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:18px;
+    padding:12px;
+    text-align:center;
+}
+
+.label{
+    font-size:13px;
+    opacity:.8;
+}
+
+.value{
+    font-size:30px;
+    font-weight:bold;
+}
+
+.centerArea{
+    flex:1;
+    width:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.card{
+    width:min(90vw,430px);
+    aspect-ratio:1.25/1;
+    border-radius:28px;
+    border:6px solid rgba(255,255,255,.2);
+    box-shadow:0 10px 35px rgba(0,0,0,.5);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    transition:.15s;
+}
+
+.card.correct{
+    transform:scale(1.04);
+    box-shadow:
+      0 0 30px rgba(0,255,100,.9);
+}
+
+.card.wrong{
+    animation:shake .25s;
+}
+
+@keyframes shake{
+    0%{transform:translateX(0);}
+    25%{transform:translateX(-12px);}
+    50%{transform:translateX(12px);}
+    75%{transform:translateX(-12px);}
+    100%{transform:translateX(0);}
+}
+
+.word{
+    font-size:clamp(60px,18vw,120px);
+    font-weight:900;
+
+    /* 白縁 3px */
+    -webkit-text-stroke:3px #fff;
+
+    text-shadow:
+      -1px -1px 0 #fff,
+       1px -1px 0 #fff,
+      -1px  1px 0 #fff,
+       1px  1px 0 #fff,
+       0 3px 8px rgba(0,0,0,.25);
+}
+
+.buttons{
+    width:100%;
+    display:flex;
+    gap:12px;
+}
+
+button{
+    flex:1;
+    border:none;
+    border-radius:22px;
+    font-size:30px;
+    font-weight:bold;
+    color:#fff;
+    padding:24px 12px;
+    cursor:pointer;
+}
+
+button:active{
+    transform:scale(.96);
+}
+
+#irochiBtn{
+    background:
+      linear-gradient(135deg,
+      #ff9800,
+      #ff5722);
+}
+
+#safeBtn{
+    background:
+      linear-gradient(135deg,
+      #2196f3,
+      #1565c0);
+}
+
+#overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.88);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:10;
+}
+
+.panel{
+    width:min(92vw,420px);
+    background:#222;
+    border-radius:28px;
+    text-align:center;
+    padding:30px;
+}
+
+.panel h2{
+    margin-top:0;
+    font-size:38px;
+}
+
+.big{
+    font-size:58px;
+    font-weight:bold;
+    margin:12px 0;
+}
+
+.small{
+    opacity:.85;
+    line-height:1.8;
+}
+
+#startBtn,
+#retryBtn{
+    margin-top:18px;
+    width:100%;
+    background:
+      linear-gradient(135deg,
+      #00c853,
+      #00e676);
+    border:none;
+    color:#fff;
+    font-size:30px;
+    border-radius:20px;
+    padding:20px;
+}
+
+.feedback{
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:
+      translate(-50%,-50%);
+    font-size:110px;
+    font-weight:900;
+    pointer-events:none;
+    opacity:0;
+}
+
+.feedback.show{
+    animation:pop .5s;
+}
+
+@keyframes pop{
+    0%{
+        opacity:0;
+        transform:
+          translate(-50%,-50%)
+          scale(.2);
+    }
+
+    30%{
+        opacity:1;
+        transform:
+          translate(-50%,-50%)
+          scale(1.2);
+    }
+
+    100%{
+        opacity:0;
+        transform:
+          translate(-50%,-50%)
+          scale(1);
+    }
+}
+
+@media(max-width:480px){
+
+    h1{
+        font-size:26px;
+    }
+
+    button{
+        font-size:24px;
+        padding:20px 10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+    <h1>🎨 いろちタイムアタック</h1>
+
+    <div class="topBar">
+
+        <div class="statBox">
+            <div class="label">
+                残り時間
+            </div>
+            <div class="value"
+                 id="time">
+                30
+            </div>
+        </div>
+
+        <div class="statBox">
+            <div class="label">
+                スコア
+            </div>
+            <div class="value"
+                 id="score">
+                0
+            </div>
+        </div>
+
+        <div class="statBox">
+            <div class="label">
+                コンボ
+            </div>
+            <div class="value"
+                 id="combo">
+                0
+            </div>
+        </div>
+
+    </div>
+
+    <div class="centerArea">
+        <div class="card"
+             id="card">
+            <div class="word"
+                 id="word">
+                あか
+            </div>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button id="irochiBtn">
+            いろち
+        </button>
+
+        <button id="safeBtn">
+            セーフ
+        </button>
+    </div>
+
+</div>
+
+<div id="overlay">
+    <div class="panel">
+
+        <h2>
+            いろちタイムアタック
+        </h2>
+
+        <p>
+            30秒で何問正解できる？
+        </p>
+
+        <p class="small">
+            背景色、文字色、文字の内容、3つ全部違う → 「いろち」<br>
+            それ以外 → 「セーフ」
+        </p>
+
+        <button id="startBtn">
+            START
+        </button>
+
+    </div>
+</div>
+
+<div class="feedback"
+     id="feedback">
+</div>
+
+<script>
+const colors = [
+    {
+        name:"あか",
+        color:"#ff3b30"
+    },
+    {
+        name:"あお",
+        color:"#2196f3"
+    },
+    {
+        name:"きいろ",
+        color:"#ffd600"
+    },
+    {
+        name:"みどり",
+        color:"#00c853"
+    }
+];
+
+let score = 0;
+let combo = 0;
+let maxCombo = 0;
+let time = 30;
+let timer = null;
+let currentAnswer = false;
+let playing = false;
+
+const timeEl =
+    document.getElementById("time");
+
+const scoreEl =
+    document.getElementById("score");
+
+const comboEl =
+    document.getElementById("combo");
+
+const wordEl =
+    document.getElementById("word");
+
+const cardEl =
+    document.getElementById("card");
+
+const overlay =
+    document.getElementById("overlay");
+
+const feedback =
+    document.getElementById("feedback");
+
+function randomIndex(){
+    return Math.floor(
+        Math.random() *
+        colors.length
+    );
+}
+
+function nextQuestion(){
+
+    const bgIndex =
+        randomIndex();
+
+    const textIndex =
+        randomIndex();
+
+    const meaningIndex =
+        randomIndex();
+
+    const unique =
+        new Set([
+            bgIndex,
+            textIndex,
+            meaningIndex
+        ]).size === 3;
+
+    currentAnswer = unique;
+
+    cardEl.style.background =
+        colors[bgIndex].color;
+
+    wordEl.textContent =
+        colors[meaningIndex].name;
+
+    wordEl.style.color =
+        colors[textIndex].color;
+}
+
+function showFeedback(ok){
+
+    feedback.textContent =
+        ok ? "○" : "×";
+
+    feedback.style.color =
+        ok
+        ? "#00e676"
+        : "#ff5252";
+
+    feedback.classList
+        .remove("show");
+
+    void feedback.offsetWidth;
+
+    feedback.classList
+        .add("show");
+}
+
+function answer(userChoice){
+
+    if(!playing) return;
+
+    const correct =
+        userChoice ===
+        currentAnswer;
+
+    if(correct){
+
+        score++;
+        combo++;
+
+        maxCombo =
+            Math.max(
+                maxCombo,
+                combo
+            );
+
+        cardEl.classList
+            .add("correct");
+
+        setTimeout(()=>{
+            cardEl.classList
+                .remove(
+                    "correct"
+                );
+        },150);
+
+        showFeedback(true);
+
+    }else{
+
+        combo = 0;
+
+        time =
+            Math.max(
+                0,
+                time - 2
+            );
+
+        cardEl.classList
+            .add("wrong");
+
+        setTimeout(()=>{
+            cardEl.classList
+                .remove(
+                    "wrong"
+                );
+        },250);
+
+        showFeedback(false);
+    }
+
+    scoreEl.textContent =
+        score;
+
+    comboEl.textContent =
+        combo;
+
+    timeEl.textContent =
+        time.toFixed(1);
+
+    nextQuestion();
+}
+
+function startGame(){
+
+    score = 0;
+    combo = 0;
+    maxCombo = 0;
+    time = 30;
+
+    scoreEl.textContent =
+        score;
+
+    comboEl.textContent =
+        combo;
+
+    timeEl.textContent =
+        time;
+
+    overlay.style.display =
+        "none";
+
+    document.body
+        .classList
+        .remove("urgent");
+
+    playing = true;
+
+    nextQuestion();
+
+    clearInterval(timer);
+
+    timer =
+      setInterval(()=>{
+
+        time -= 0.1;
+
+        if(time <= 5){
+            document.body
+                .classList
+                .add("urgent");
+        }
+
+        if(time <= 0){
+            finishGame();
+            return;
+        }
+
+        timeEl.textContent =
+            time.toFixed(1);
+
+    },100);
+}
+
+function finishGame(){
+
+    clearInterval(timer);
+
+    playing = false;
+
+    document.body
+        .classList
+        .remove("urgent");
+
+    overlay.innerHTML = `
+        <div class="panel">
+            <h2>終了！</h2>
+
+            <div class="big">
+                ${score}
+            </div>
+
+            <p>
+                最大コンボ：
+                ${maxCombo}
+            </p>
+
+            <button id="retryBtn">
+                もう一回
+            </button>
+        </div>
+    `;
+
+    overlay.style.display =
+        "flex";
+
+    document
+      .getElementById(
+        "retryBtn"
+      )
+      .onclick =
+        startGame;
+}
+
+document
+.getElementById(
+    "startBtn"
+).onclick =
+    startGame;
+
+document
+.getElementById(
+    "irochiBtn"
+).onclick =
+    () => answer(true);
+
+document
+.getElementById(
+    "safeBtn"
+).onclick =
+    () => answer(false);
+</script>
+
+</body>
+</html>
