@@ -51,7 +51,8 @@ h1{
 
 .game-list{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    grid-template-columns:
+      repeat(auto-fit,minmax(160px,1fr));
     gap:18px;
 }
 
@@ -63,9 +64,11 @@ h1{
     padding:20px;
     text-align:center;
 
-    background:rgba(255,255,255,0.08);
+    background:
+      rgba(255,255,255,0.08);
 
-    border:1px solid rgba(255,255,255,0.08);
+    border:
+      1px solid rgba(255,255,255,0.08);
 
     backdrop-filter:blur(10px);
 }
@@ -78,7 +81,8 @@ h1{
 
 .game-card:hover{
     transform:translateY(-4px);
-    box-shadow:0 0 30px rgba(0,255,255,.15);
+    box-shadow:
+      0 0 30px rgba(0,255,255,.15);
 }
 
 .game-card:active{
@@ -99,37 +103,84 @@ h1{
     align-items:center;
     justify-content:center;
     font-size:42px;
-    box-shadow:0 8px 20px rgba(0,0,0,.3);
+    box-shadow:
+      0 8px 20px rgba(0,0,0,.3);
 }
 
 /* 色 */
 .marubatsu{
-    background:linear-gradient(135deg,#ef4444,#f97316);
+    background:
+      linear-gradient(
+        135deg,
+        #ef4444,
+        #f97316
+      );
 }
 
 .pentaroll{
-    background:linear-gradient(135deg,#8b5cf6,#2563eb);
+    background:
+      linear-gradient(
+        135deg,
+        #8b5cf6,
+        #2563eb
+      );
 }
 
 .hidden-timer{
-    background:linear-gradient(135deg,#06b6d4,#2563eb);
+    background:
+      linear-gradient(
+        135deg,
+        #06b6d4,
+        #2563eb
+      );
 }
 
 .cup-shuffle{
-    background:linear-gradient(135deg,#dc2626,#991b1b);
+    background:
+      linear-gradient(
+        135deg,
+        #dc2626,
+        #991b1b
+      );
 }
 
 .fruit-sort{
-    background:linear-gradient(135deg,#22c55e,#16a34a);
+    background:
+      linear-gradient(
+        135deg,
+        #22c55e,
+        #16a34a
+      );
 }
 
-/* 🆕 タイマーゲーム */
+/* タイマーゲーム */
 .stopwatch{
-    background:linear-gradient(135deg,#06b6d4,#0ea5e9);
+    background:
+      linear-gradient(
+        135deg,
+        #06b6d4,
+        #0ea5e9
+      );
+}
+
+/* 🆕 いろちタイムアタック */
+.irochi{
+    background:
+      linear-gradient(
+        135deg,
+        #f97316,
+        #ec4899,
+        #8b5cf6
+      );
 }
 
 .comingsoon{
-    background:linear-gradient(135deg,#4b5563,#1f2937);
+    background:
+      linear-gradient(
+        135deg,
+        #4b5563,
+        #1f2937
+      );
 }
 
 /* テキスト */
@@ -153,7 +204,8 @@ h1{
     }
 
     .game-list{
-        grid-template-columns:repeat(2,1fr);
+        grid-template-columns:
+          repeat(2,1fr);
     }
 
     .game-icon{
@@ -170,7 +222,9 @@ h1{
 
 <header>
     <h1>🎮 GAME PORTAL</h1>
-    <div class="sub">好きなゲームをすぐ起動</div>
+    <div class="sub">
+        好きなゲームをすぐ起動
+    </div>
 </header>
 
 <div class="container">
@@ -182,9 +236,17 @@ h1{
            href="https://naka0023.github.io/marubatugame/marubatsu.html"
            target="_blank">
 
-            <div class="game-icon marubatsu">⭕❌</div>
-            <div class="game-name">〇×ゲーム</div>
-            <div class="game-desc">新感覚○×ゲーム！途中から消えていく！</div>
+            <div class="game-icon marubatsu">
+                ⭕❌
+            </div>
+
+            <div class="game-name">
+                〇×ゲーム
+            </div>
+
+            <div class="game-desc">
+                新感覚○×ゲーム！途中から消えていく！
+            </div>
 
         </a>
 
@@ -193,9 +255,17 @@ h1{
            href="https://naka0023.github.io/marubatugame/penta.html"
            target="_blank">
 
-            <div class="game-icon pentaroll">🎲</div>
-            <div class="game-name">ペンタロール</div>
-            <div class="game-desc">新感覚5目並べ！端からボールを入れていこう！</div>
+            <div class="game-icon pentaroll">
+                🎲
+            </div>
+
+            <div class="game-name">
+                ペンタロール
+            </div>
+
+            <div class="game-desc">
+                新感覚5目並べ！端からボールを入れていこう！
+            </div>
 
         </a>
 
@@ -204,9 +274,17 @@ h1{
            href="https://naka0023.github.io/marubatugame/hidden-timer.html"
            target="_blank">
 
-            <div class="game-icon hidden-timer">⏱</div>
-            <div class="game-name">隠しタイマーゲーム</div>
-            <div class="game-desc">時間を読み切れ！超えた瞬間に負け！</div>
+            <div class="game-icon hidden-timer">
+                ⏱
+            </div>
+
+            <div class="game-name">
+                隠しタイマーゲーム
+            </div>
+
+            <div class="game-desc">
+                時間を読み切れ！超えた瞬間に負け！
+            </div>
 
         </a>
 
@@ -215,9 +293,17 @@ h1{
            href="https://naka0023.github.io/marubatugame/cup-shuffle.html"
            target="_blank">
 
-            <div class="game-icon cup-shuffle">🥤</div>
-            <div class="game-name">カップシャッフル</div>
-            <div class="game-desc">ボールを見失うな！レベル10を目指せ！</div>
+            <div class="game-icon cup-shuffle">
+                🥤
+            </div>
+
+            <div class="game-name">
+                カップシャッフル
+            </div>
+
+            <div class="game-desc">
+                ボールを見失うな！レベル10を目指せ！
+            </div>
 
         </a>
 
@@ -226,29 +312,72 @@ h1{
            href="https://naka0023.github.io/marubatugame/fruit-sort.html"
            target="_blank">
 
-            <div class="game-icon fruit-sort">🍌</div>
-            <div class="game-name">フルーツ仕分け</div>
-            <div class="game-desc">スワイプで仕分け！反射神経ゲーム！</div>
+            <div class="game-icon fruit-sort">
+                🍌
+            </div>
+
+            <div class="game-name">
+                フルーツ仕分け
+            </div>
+
+            <div class="game-desc">
+                スワイプで仕分け！反射神経ゲーム！
+            </div>
 
         </a>
 
-        <!-- 🆕 タイマーゲーム -->
+        <!-- タイマーゲーム -->
         <a class="game-card"
            href="https://naka0023.github.io/marubatugame/stopwatch.html"
            target="_blank">
 
-            <div class="game-icon stopwatch">⏱</div>
-            <div class="game-name">タイマーゲーム</div>
-            <div class="game-desc">ピッタリ止めろ！集中力チャレンジ！</div>
+            <div class="game-icon stopwatch">
+                ⏱
+            </div>
+
+            <div class="game-name">
+                タイマーゲーム
+            </div>
+
+            <div class="game-desc">
+                ピッタリ止めろ！集中力チャレンジ！
+            </div>
+
+        </a>
+
+        <!-- 🆕 いろちタイムアタック -->
+        <a class="game-card"
+           href="https://naka0023.github.io/marubatugame/irochi.html"
+           target="_blank">
+
+            <div class="game-icon irochi">
+                🎨
+            </div>
+
+            <div class="game-name">
+                いろちタイムアタック
+            </div>
+
+            <div class="game-desc">
+                色と文字に惑わされる脳バグ反射ゲーム！
+            </div>
 
         </a>
 
         <!-- 近日公開 -->
         <div class="game-card-disabled">
 
-            <div class="game-icon comingsoon">🔒</div>
-            <div class="game-name">近日公開</div>
-            <div class="game-desc">Coming Soon...</div>
+            <div class="game-icon comingsoon">
+                🔒
+            </div>
+
+            <div class="game-name">
+                近日公開
+            </div>
+
+            <div class="game-desc">
+                Coming Soon...
+            </div>
 
         </div>
 
