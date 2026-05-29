@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>しりとり縛り</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+html,body{
+    margin:0;
+    padding:0;
+    min-height:100%;
+    font-family:sans-serif;
+    background:
+        radial-gradient(circle at top,#312e81 0%,#09090f 40%,#020617 100%);
+    color:#fff;
+}
+
+body{
+    padding:18px;
+}
+
+.container{
+    max-width:560px;
+    margin:auto;
+    background:rgba(10,10,25,.88);
+    border:2px solid rgba(0,255,255,.22);
+    border-radius:32px;
+    padding:24px;
+    backdrop-filter:blur(18px);
+    box-shadow:
+        0 0 30px rgba(0,255,255,.15),
+        0 0 80px rgba(255,0,255,.08);
+}
+
+button{
+    border:none;
+    cursor:pointer;
+}
+
+/* タイトル */
+h1{
+    margin:0 0 20px;
+    text-align:center;
+    font-size:34px;
+    color:#67e8f9;
+    text-shadow:
+        0 0 8px #22d3ee,
+        0 0 18px #22d3ee,
+        0 0 34px #06b6d4;
+}
+
+/* ボタン */
+.main-btn,
+.setting-btn,
+.add-btn,
+.save-btn,
+.delete-btn,
+.add-rule-btn{
+    background:linear-gradient(
+        135deg,
+        #00eaff,
+        #7c3aed
+    );
+    color:#fff;
+    border-radius:20px;
+    font-weight:bold;
+    box-shadow:
+        0 0 18px rgba(0,255,255,.35);
+}
+
+.top-controls{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.main-btn{
+    flex:1;
+    padding:18px;
+    font-size:20px;
+}
+
+.setting-btn{
+    width:58px;
+    min-width:58px;
+    height:58px;
+    border-radius:18px;
+    font-size:24px;
+    padding:0;
+}
+
+.rule-box{
+    border-radius:28px;
+    padding:24px;
+    margin-bottom:20px;
+    text-align:center;
+    border:2px solid rgba(0,255,255,.25);
+    background:rgba(0,255,255,.05);
+    box-shadow:
+        inset 0 0 20px rgba(0,255,255,.08),
+        0 0 20px rgba(0,255,255,.12);
+}
+
+.rule-title{
+    color:#c084fc;
+    font-size:14px;
+    letter-spacing:2px;
+    margin-bottom:12px;
+}
+
+.rule-text{
+    min-height:50px;
+    font-size:34px;
+    font-weight:bold;
+    color:#67e8f9;
+    text-shadow:
+        0 0 10px #22d3ee,
+        0 0 24px #06b6d4;
+}
+
+.rule-text.flash{
+    animation:ruleFlash .4s ease;
+}
+
+@keyframes ruleFlash{
+    0%{
+        opacity:.4;
+        transform:scale(.92);
+    }
+    50%{
+        transform:scale(1.12);
+        filter:brightness(2);
+    }
+    100%{
+        transform:scale(1);
+    }
+}
+
+.section-title{
+    font-size:22px;
+    font-weight:bold;
+    margin-bottom:14px;
+    color:#f472b6;
+}
+
+.input-wrap{
+    display:flex;
+    gap:10px;
+    margin-bottom:12px;
+}
+
+#wordInput,
+.rule-input{
+    flex:1;
+    width:100%;
+    padding:16px;
+    border-radius:20px;
+    border:2px solid #22d3ee;
+    background:rgba(0,0,0,.35);
+    color:#fff;
+    font-size:18px;
+    outline:none;
+}
+
+#wordInput::placeholder,
+.rule-input::placeholder{
+    color:#94a3b8;
+}
+
+.add-btn{
+    width:100px;
+    font-size:18px;
+}
+
+.message{
+    min-height:28px;
+    text-align:center;
+    font-size:18px;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+.counter{
+    text-align:right;
+    font-size:14px;
+    color:#cbd5e1;
+    margin-bottom:14px;
+}
+
+.word-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+.word{
+    padding:12px 16px;
+    border-radius:999px;
+    font-weight:bold;
+    background:rgba(236,72,153,.12);
+    border:1px solid rgba(236,72,153,.45);
+    color:#f9a8d4;
+}
+
+.empty{
+    color:#94a3b8;
+}
+
+/* モーダル */
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.75);
+    display:none;
+    justify-content:center;
+    align-items:flex-start;
+    overflow-y:auto;
+    padding:20px;
+    z-index:999;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-content{
+    width:100%;
+    max-width:500px;
+    background:#0f172a;
+    border-radius:28px;
+    padding:24px;
+    border:2px solid rgba(0,255,255,.3);
+    margin:40px 0;
+    max-height:calc(100vh - 80px);
+    overflow-y:auto;
+}
+
+.modal-title{
+    text-align:center;
+    font-size:28px;
+    margin-bottom:20px;
+    color:#67e8f9;
+}
+
+.rule-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:12px;
+}
+
+.delete-btn{
+    width:90px;
+}
+
+.add-rule-btn,
+.save-btn,
+.close-btn{
+    width:100%;
+    padding:16px;
+    font-size:18px;
+    margin-top:10px;
+}
+
+.close-btn{
+    border-radius:20px;
+    background:#334155;
+    color:#fff;
+}
+
+@media(max-width:480px){
+
+    h1{
+        font-size:28px;
+    }
+
+    .rule-text{
+        font-size:28px;
+    }
+
+    .input-wrap,
+    .rule-row{
+        flex-direction:column;
+    }
+
+    .add-btn,
+    .delete-btn{
+        width:100%;
+        height:56px;
+    }
+
+    .setting-btn{
+        width:54px;
+        min-width:54px;
+        height:54px;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <h1>⚡ しりとり縛り ⚡</h1>
+
+    <div class="top-controls">
+        <button id="ruleBtn" class="main-btn">
+            🎲 縛りを決める
+        </button>
+
+        <button id="settingBtn" class="setting-btn">
+            ⚙️
+        </button>
+    </div>
+
+    <div class="rule-box">
+        <div class="rule-title">
+            CURRENT RULE
+        </div>
+
+        <div id="ruleText" class="rule-text">
+            TAP TO START
+        </div>
+    </div>
+
+    <div class="section-title">
+        単語記録＆被り判定
+    </div>
+
+    <div class="input-wrap">
+        <input
+            id="wordInput"
+            type="text"
+            placeholder="しりとり単語を入力"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+        />
+
+        <button id="addBtn" class="add-btn">
+            登録
+        </button>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div class="counter">
+        登録数：
+        <span id="count">0</span>
+    </div>
+
+    <div id="wordList" class="word-list">
+        <div class="empty">
+            まだ単語がありません
+        </div>
+    </div>
+
+</div>
+
+<!-- モーダル -->
+<div id="modal" class="modal">
+
+    <div class="modal-content">
+
+        <div class="modal-title">
+            ⚙️ お題設定
+        </div>
+
+        <div id="ruleEditor"></div>
+
+        <button id="addRuleBtn" class="add-rule-btn">
+            ＋ お題追加
+        </button>
+
+        <button id="saveBtn" class="save-btn">
+            保存
+        </button>
+
+        <button id="closeBtn" class="close-btn">
+            閉じる
+        </button>
+
+    </div>
+
+</div>
+
+<script>
+let rules = [
+    "5文字以上",
+    "5文字未満",
+    "食べ物",
+    "大きなもの",
+    "硬いもの",
+    "生き物",
+    "縛りなし"
+];
+
+const usedWords = [];
+
+const ruleBtn = document.getElementById("ruleBtn");
+const ruleText = document.getElementById("ruleText");
+const settingBtn = document.getElementById("settingBtn");
+const modal = document.getElementById("modal");
+const ruleEditor = document.getElementById("ruleEditor");
+const addRuleBtn = document.getElementById("addRuleBtn");
+const saveBtn = document.getElementById("saveBtn");
+const closeBtn = document.getElementById("closeBtn");
+
+const wordInput = document.getElementById("wordInput");
+const addBtn = document.getElementById("addBtn");
+const message = document.getElementById("message");
+const wordList = document.getElementById("wordList");
+const count = document.getElementById("count");
+
+ruleBtn.addEventListener("click",()=>{
+
+    if(rules.length===0){
+        showMessage("お題がありません","#ff4d6d");
+        return;
+    }
+
+    const randomIndex =
+        Math.floor(Math.random()*rules.length);
+
+    ruleText.classList.remove("flash");
+    void ruleText.offsetWidth;
+
+    ruleText.textContent =
+        rules[randomIndex];
+
+    ruleText.classList.add("flash");
+});
+
+settingBtn.addEventListener("click",()=>{
+    modal.classList.add("show");
+    renderRuleEditor();
+});
+
+closeBtn.addEventListener("click",()=>{
+    modal.classList.remove("show");
+});
+
+function renderRuleEditor(){
+
+    ruleEditor.innerHTML = "";
+
+    rules.forEach((rule,index)=>{
+
+        const row =
+            document.createElement("div");
+
+        row.className =
+            "rule-row";
+
+        row.innerHTML = `
+            <input
+                class="rule-input"
+                value="${rule}"
+            />
+
+            <button
+                class="delete-btn"
+                onclick="deleteRule(${index})">
+                削除
+            </button>
+        `;
+
+        ruleEditor.appendChild(row);
+    });
+}
+
+function deleteRule(index){
+    rules.splice(index,1);
+    renderRuleEditor();
+}
+
+addRuleBtn.addEventListener("click",()=>{
+    rules.push("");
+    renderRuleEditor();
+});
+
+saveBtn.addEventListener("click",()=>{
+
+    const inputs =
+        document.querySelectorAll(".rule-input");
+
+    rules = [...inputs]
+        .map(v=>v.value.trim())
+        .filter(v=>v);
+
+    modal.classList.remove("show");
+
+    showMessage(
+        "お題を保存しました",
+        "#00f7ff"
+    );
+});
+
+function showMessage(text,color){
+    message.textContent = text;
+    message.style.color = color;
+}
+
+function addWord(){
+
+    const word =
+        wordInput.value.trim();
+
+    if(!word){
+        showMessage(
+            "単語を入力してください",
+            "#ff4d6d"
+        );
+        return;
+    }
+
+    if(usedWords.includes(word)){
+        showMessage(
+            `「${word}」は既に使われています`,
+            "#ff4d6d"
+        );
+        return;
+    }
+
+    usedWords.push(word);
+
+    showMessage(
+        `「${word}」を登録しました`,
+        "#00f7ff"
+    );
+
+    wordInput.value = "";
+
+    renderWords();
+}
+
+function renderWords(){
+
+    wordList.innerHTML = "";
+
+    if(usedWords.length===0){
+
+        wordList.innerHTML =
+        '<div class="empty">まだ単語がありません</div>';
+
+        count.textContent = 0;
+        return;
+    }
+
+    usedWords.forEach(word=>{
+
+        const chip =
+            document.createElement("div");
+
+        chip.className =
+            "word";
+
+        chip.textContent =
+            word;
+
+        wordList.appendChild(chip);
+    });
+
+    count.textContent =
+        usedWords.length;
+}
+
+addBtn.addEventListener(
+    "click",
+    addWord
+);
+
+wordInput.addEventListener(
+    "keydown",
+    e=>{
+        if(e.key==="Enter"){
+            e.preventDefault();
+            addWord();
+        }
+    }
+);
+
+renderWords();
+</script>
+
+</body>
+</html>
