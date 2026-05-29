@@ -16,19 +16,16 @@
 body{
     margin:0;
     font-family:sans-serif;
-
     background:
       radial-gradient(
         circle at top,
         #1f2937,
         #0d1117
       );
-
     color:white;
     min-height:100vh;
 }
 
-/* ヘッダー */
 header{
     text-align:center;
     padding:30px 20px 10px;
@@ -44,7 +41,6 @@ h1{
     opacity:.7;
 }
 
-/* コンテンツ */
 .container{
     padding:20px;
 }
@@ -56,20 +52,15 @@ h1{
     gap:18px;
 }
 
-/* カード */
 .game-card,
 .game-card-disabled{
-
     border-radius:28px;
     padding:20px;
     text-align:center;
-
     background:
       rgba(255,255,255,0.08);
-
     border:
       1px solid rgba(255,255,255,0.08);
-
     backdrop-filter:blur(10px);
 }
 
@@ -93,7 +84,6 @@ h1{
     opacity:.7;
 }
 
-/* アイコン */
 .game-icon{
     width:90px;
     height:90px;
@@ -107,7 +97,6 @@ h1{
       0 8px 20px rgba(0,0,0,.3);
 }
 
-/* 色 */
 .marubatsu{
     background:
       linear-gradient(
@@ -153,7 +142,6 @@ h1{
       );
 }
 
-/* タイマーゲーム */
 .stopwatch{
     background:
       linear-gradient(
@@ -163,7 +151,6 @@ h1{
       );
 }
 
-/* 🆕 いろちタイムアタック */
 .irochi{
     background:
       linear-gradient(
@@ -171,6 +158,17 @@ h1{
         #f97316,
         #ec4899,
         #8b5cf6
+      );
+}
+
+/* ネオンメモリー */
+.neon-memory{
+    background:
+      linear-gradient(
+        135deg,
+        #00e5ff,
+        #7c3aed,
+        #ff2cdf
       );
 }
 
@@ -183,7 +181,6 @@ h1{
       );
 }
 
-/* テキスト */
 .game-name{
     margin-top:16px;
     font-size:18px;
@@ -196,7 +193,6 @@ h1{
     font-size:14px;
 }
 
-/* スマホ */
 @media(max-width:600px){
 
     h1{
@@ -345,7 +341,7 @@ h1{
 
         </a>
 
-        <!-- 🆕 いろちタイムアタック -->
+        <!-- いろちタイムアタック -->
         <a class="game-card"
            href="https://naka0023.github.io/marubatugame/irochi.html"
            target="_blank">
@@ -360,6 +356,25 @@ h1{
 
             <div class="game-desc">
                 色と文字に惑わされる脳バグ反射ゲーム！
+            </div>
+
+        </a>
+
+        <!-- ネオンメモリー -->
+        <a class="game-card"
+           href="https://naka0023.github.io/marubatugame/neon_memory.html"
+           target="_blank">
+
+            <div class="game-icon neon-memory">
+                🧠
+            </div>
+
+            <div class="game-name">
+                ネオンメモリー
+            </div>
+
+            <div class="game-desc">
+                光る順番を覚えろ！限界まで記憶力チャレンジ！
             </div>
 
         </a>
