@@ -6,202 +6,206 @@
 <title>NEON MEMORY</title>
 
 <style>
-*{
-    box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
-body{
-    margin:0;
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-family:Arial,sans-serif;
-    background:
-        radial-gradient(circle at top,#182544,#070b16 50%,#02040a);
-    color:#fff;
-    overflow:hidden;
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial, sans-serif;
+    background: radial-gradient(circle at top, #182544, #070b16 50%, #02040a);
+    color: #fff;
+    overflow: hidden;
 }
 
-.container{
-    width:min(95vw,520px);
-    padding:20px;
-    text-align:center;
+.container {
+    width: min(95vw, 520px);
+    padding: 20px;
+    text-align: center;
 }
 
-.title{
-    font-size:clamp(30px,7vw,48px);
-    font-weight:bold;
-    margin-bottom:12px;
-    color:#67e8f9;
-    text-shadow:
-        0 0 10px #00e5ff,
-        0 0 30px #00e5ff,
-        0 0 60px #00e5ff;
+.title {
+    font-size: clamp(30px, 7vw, 48px);
+    font-weight: bold;
+    margin-bottom: 12px;
+    color: #67e8f9;
+    text-shadow: 0 0 10px #00e5ff, 0 0 30px #00e5ff, 0 0 60px #00e5ff;
 }
 
-.info{
-    display:flex;
-    gap:12px;
-    flex-wrap:wrap;
-    margin:18px 0;
+.info {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 18px 0;
 }
 
-.panel{
-    flex:1;
-    min-width:100px;
-    background:rgba(255,255,255,.05);
-    border:2px solid rgba(0,255,255,.25);
-    border-radius:18px;
-    padding:14px;
-    box-shadow:0 0 25px rgba(0,255,255,.15);
+.panel {
+    flex: 1;
+    min-width: 100px;
+    background: rgba(255, 255, 255, .05);
+    border: 2px solid rgba(0, 255, 255, .25);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: 0 0 25px rgba(0, 255, 255, .15);
 }
 
-.label{
-    font-size:13px;
-    color:#8defff;
+.label {
+    font-size: 13px;
+    color: #8defff;
 }
 
-.value{
-    margin-top:6px;
-    font-size:26px;
-    font-weight:bold;
+.value {
+    margin-top: 6px;
+    font-size: 26px;
+    font-weight: bold;
 }
 
-.status{
-    min-height:30px;
-    margin:15px 0 22px;
-    font-size:18px;
-    color:#bffcff;
-    text-shadow:0 0 10px cyan;
+.status {
+    min-height: 30px;
+    margin: 15px 0 22px;
+    font-size: 18px;
+    color: #bffcff;
+    text-shadow: 0 0 10px cyan;
 }
 
-.board{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:14px;
+.board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
 }
 
-.cell{
-    aspect-ratio:1;
-    border-radius:22px;
-    background:
-        linear-gradient(145deg,#0c1830,#08111f);
-    border:2px solid rgba(0,255,255,.15);
-    box-shadow:
-        inset 0 0 12px rgba(255,255,255,.05),
-        0 0 10px rgba(0,255,255,.1);
-    transition:.08s;
+.cell {
+    aspect-ratio: 1;
+    border-radius: 22px;
+    background: linear-gradient(145deg, #0c1830, #08111f);
+    border: 2px solid rgba(0, 255, 255, .15);
+    box-shadow: inset 0 0 12px rgba(255, 255, 255, .05), 0 0 10px rgba(0, 255, 255, .1);
+    transition: .08s;
 }
 
-.cell.active{
-    transform:scale(1.06);
-    background:
-        linear-gradient(145deg,#00d0ff,#7b2fff);
-    box-shadow:
-        0 0 20px #00e5ff,
-        0 0 45px #00e5ff,
-        0 0 80px #7b2fff;
+.cell.active {
+    transform: scale(1.06);
+    background: linear-gradient(145deg, #00d0ff, #7b2fff);
+    box-shadow: 0 0 20px #00e5ff, 0 0 45px #00e5ff, 0 0 80px #7b2fff;
 }
 
-.cell.player{
-    transform:scale(1.05);
-    background:
-        linear-gradient(145deg,#ff2cdf,#00fff7);
-    box-shadow:
-        0 0 25px #ff2cdf,
-        0 0 50px #00fff7;
+.cell.player {
+    transform: scale(1.05);
+    background: linear-gradient(145deg, #ff2cdf, #00fff7);
+    box-shadow: 0 0 25px #ff2cdf, 0 0 50px #00fff7;
 }
 
-button{
-    border:none;
-    cursor:pointer;
-    margin-top:24px;
-    padding:16px 34px;
-    font-size:20px;
-    font-weight:bold;
-    border-radius:999px;
-    color:#fff;
-    background:
-      linear-gradient(135deg,#00cfff,#6d28ff);
-    box-shadow:
-      0 0 15px #00e5ff,
-      0 0 35px rgba(0,229,255,.4);
+/* ボタンの共通設定 */
+button {
+    border: none;
+    cursor: pointer;
+    padding: 16px 34px;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(135deg, #00cfff, #6d28ff);
+    box-shadow: 0 0 15px #00e5ff, 0 0 35px rgba(0, 229, 255, .4);
 }
 
-button:active{
-    transform:scale(.95);
+button:active {
+    transform: scale(.95);
 }
 
-.overlay{
-    position:fixed;
-    inset:0;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:rgba(0,0,0,.85);
-    opacity:0;
-    pointer-events:none;
-    transition:.25s;
-    z-index:999;
+/* メニューボタン用レイアウト */
+.menu-buttons {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    margin-top: 24px;
 }
 
-.overlay.show{
-    opacity:1;
-    pointer-events:auto;
+.menu-buttons button {
+    flex: 1;
+    max-width: 180px;
 }
 
-.modal-box{
-    width:min(90vw,360px);
-    padding:28px;
-    border-radius:30px;
-    text-align:center;
-    background:rgba(8,16,30,.96);
-    border:2px solid rgba(0,255,255,.25);
-    box-shadow:
-      0 0 25px rgba(0,255,255,.25),
-      0 0 70px rgba(0,255,255,.15);
+/* チュートリアルボタン専用カラー */
+.menu-tutorial-btn {
+    background: linear-gradient(135deg, #a855f7, #6366f1);
+    box-shadow: 0 0 15px #a855f7, 0 0 35px rgba(168, 85, 247, .4);
 }
 
-.modal-title{
-    font-size:30px;
-    font-weight:bold;
-    margin-bottom:14px;
-    color:#7be9ff;
-    text-shadow:0 0 15px cyan;
+.overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, .85);
+    opacity: 0;
+    pointer-events: none;
+    transition: .25s;
+    z-index: 999;
 }
 
-.modal-text{
-    font-size:18px;
-    margin-bottom:24px;
+.overlay.show {
+    opacity: 1;
+    pointer-events: auto;
 }
 
-.modal-buttons{
-    display:flex;
-    gap:12px;
+.modal-box {
+    width: min(90vw, 360px);
+    padding: 28px;
+    border-radius: 30px;
+    text-align: center;
+    background: rgba(8, 16, 30, .96);
+    border: 2px solid rgba(0, 255, 255, .25);
+    box-shadow: 0 0 25px rgba(0, 255, 255, .25), 0 0 70px rgba(0, 255, 255, .15);
 }
 
-.modal-buttons button{
-    flex:1;
-    margin:0;
+.modal-title {
+    font-size: 30px;
+    font-weight: bold;
+    margin-bottom: 14px;
+    color: #7be9ff;
+    text-shadow: 0 0 15px cyan;
 }
 
-.cancel-btn{
-    background:
-      linear-gradient(135deg,#444,#222);
+.tutorial-title {
+    color: #a855f7;
+    text-shadow: 0 0 15px #a855f7;
 }
 
-.gameover-title{
-    color:#ff5ea8;
-    text-shadow:
-      0 0 10px hotpink,
-      0 0 30px hotpink;
+.modal-text {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    text-align: left;
 }
 
-.final-score{
-    margin:18px 0;
-    font-size:26px;
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.modal-buttons button {
+    flex: 1;
+    margin: 0;
+}
+
+.cancel-btn {
+    background: linear-gradient(135deg, #444, #222);
+}
+
+.gameover-title {
+    color: #ff5ea8;
+    text-shadow: 0 0 10px hotpink, 0 0 30px hotpink;
+}
+
+.final-score {
+    margin: 18px 0;
+    font-size: 26px;
 }
 </style>
 </head>
@@ -209,7 +213,6 @@ button:active{
 <body>
 
 <div class="container">
-
     <div class="title">NEON MEMORY</div>
 
     <div class="info">
@@ -217,12 +220,10 @@ button:active{
             <div class="label">LEVEL</div>
             <div class="value" id="level">0</div>
         </div>
-
         <div class="panel">
             <div class="label">SCORE</div>
             <div class="value" id="score">0</div>
         </div>
-
         <div class="panel">
             <div class="label">BEST</div>
             <div class="value" id="best">0</div>
@@ -235,246 +236,344 @@ button:active{
 
     <div class="board" id="board"></div>
 
-    <button id="startBtn">
-        START
-    </button>
+    <div class="menu-buttons">
+        <button id="startBtn">START</button>
+        <button id="menuTutorialBtn" class="menu-tutorial-btn">TUTORIAL</button>
+    </div>
+</div>
 
+<div class="overlay" id="tutorialModal">
+    <div class="modal-box">
+        <div class="modal-title tutorial-title" id="tutorialTitle">TUTORIAL</div>
+        <div class="modal-text" id="tutorialText">説明文</div>
+        <button id="tutorialBtn">次へ</button>
+    </div>
 </div>
 
 <div class="overlay" id="gameOverModal">
     <div class="modal-box">
-        <div class="modal-title gameover-title">
-            GAME OVER
-        </div>
-
-        <div class="final-score" id="finalScore">
-            SCORE : 0
-        </div>
-
-        <button onclick="restartImmediately()">
-            RESTART
-        </button>
+        <div class="modal-title gameover-title">GAME OVER</div>
+        <div class="final-score" id="finalScore">SCORE : 0</div>
+        <button onclick="restartImmediately()">RESTART</button>
     </div>
 </div>
 
 <div class="overlay" id="confirmModal">
     <div class="modal-box">
-        <div class="modal-title">
-            RESTART ?
-        </div>
-
-        <div class="modal-text">
-            最初からやり直しますか？
-        </div>
-
+        <div class="modal-title" id="confirmTitle">RESTART ?</div>
+        <div class="modal-text" id="confirmText" style="text-align:center;">最初からやり直しますか？</div>
         <div class="modal-buttons">
-            <button onclick="confirmRestart()">
-                はい
-            </button>
-
-            <button class="cancel-btn"
-                onclick="closeConfirmModal()">
-                キャンセル
-            </button>
+            <button onclick="confirmRestart()">はい</button>
+            <button class="cancel-btn" onclick="closeConfirmModal()">キャンセル</button>
         </div>
     </div>
 </div>
 
 <script>
-const board=document.getElementById("board");
-const levelEl=document.getElementById("level");
-const scoreEl=document.getElementById("score");
-const bestEl=document.getElementById("best");
-const statusEl=document.getElementById("status");
+const board = document.getElementById("board");
+const levelEl = document.getElementById("level");
+const scoreEl = document.getElementById("score");
+const bestEl = document.getElementById("best");
+const statusEl = document.getElementById("status");
 
-const gameOverModal=document.getElementById("gameOverModal");
-const confirmModal=document.getElementById("confirmModal");
-const finalScore=document.getElementById("finalScore");
+const gameOverModal = document.getElementById("gameOverModal");
+const confirmModal = document.getElementById("confirmModal");
+const confirmTitle = document.getElementById("confirmTitle");
+const confirmText = document.getElementById("confirmText");
+const finalScore = document.getElementById("finalScore");
 
-let sequence=[];
-let playerIndex=0;
-let canTap=false;
-let score=0;
-let gameStarted=false;
+// チュートリアル用の要素
+const tutorialModal = document.getElementById("tutorialModal");
+const tutorialTitle = document.getElementById("tutorialTitle");
+const tutorialText = document.getElementById("tutorialText");
+const tutorialBtn = document.getElementById("tutorialBtn");
+const menuTutorialBtn = document.getElementById("menuTutorialBtn");
 
-let best=localStorage.getItem("neonBest") || 0;
-bestEl.textContent=best;
+let sequence = [];
+let playerIndex = 0;
+let canTap = false;
+let score = 0;
+let gameStarted = false;
 
-for(let i=0;i<9;i++){
+// チュートリアル制御用変数
+let isTutorial = false;
+let tutorialStep = 0;
+let tutorialCallback = null;
+let pendingAction = null; // 確認画面での分岐用 ('start' or 'tutorial')
+const tutorialSequences = [
+    [4],    // 練習1: 中央のみ
+    [4, 0]  // 練習2: 中央 → 左上
+];
 
-    const cell=document.createElement("div");
-    cell.className="cell";
-    cell.dataset.index=i;
+let best = localStorage.getItem("neonBest") || 0;
+bestEl.textContent = best;
 
-    cell.addEventListener("click",()=>{
+for(let i=0; i<9; i++){
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.dataset.index = i;
+    cell.addEventListener("click", () => {
         tapCell(i);
     });
-
     board.appendChild(cell);
 }
 
-const cells=document.querySelectorAll(".cell");
+const cells = document.querySelectorAll(".cell");
 
 function sleep(ms){
-    return new Promise(r=>setTimeout(r,ms));
+    return new Promise(r => setTimeout(r, ms));
 }
 
-function playSound(freq=400,duration=80){
+function playSound(freq=400, duration=80){
+    const ctx = new(window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
 
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    const osc=ctx.createOscillator();
-    const gain=ctx.createGain();
-
-    osc.type="sine";
-    osc.frequency.value=freq;
-
+    osc.type = "sine";
+    osc.frequency.value = freq;
     osc.connect(gain);
     gain.connect(ctx.destination);
-
-    gain.gain.value=.08;
+    gain.gain.value = .08;
 
     osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration/1000);
+    osc.stop(ctx.currentTime + duration/1000);
+}
 
-    gain.gain.exponentialRampToValueAtTime(
-        0.0001,
-        ctx.currentTime+duration/1000
+// チュートリアルポップアップを表示する関数
+function showTutorialPopup(title, text, btnText, callback) {
+    tutorialTitle.textContent = title;
+    tutorialText.innerHTML = text;
+    tutorialBtn.textContent = btnText;
+    tutorialCallback = callback;
+    tutorialModal.classList.add("show");
+}
+
+// チュートリアルポップアップのボタンイベント
+tutorialBtn.addEventListener("click", () => {
+    tutorialModal.classList.remove("show");
+    if (tutorialCallback) {
+        tutorialCallback();
+        tutorialCallback = null;
+    }
+});
+
+// チュートリアルシーケンスを開始する共通処理
+function startTutorialFlow() {
+    isTutorial = true;
+    tutorialStep = 0;
+    showTutorialPopup(
+        "HOW TO PLAY",
+        "NEON MEMORYへようこそ！<br><br>このゲームは、光ったパネルの【位置】と【順番】を記憶して、全く同じ通りにタップしていくゲームです。<br>まずは簡単な練習から始めましょう！",
+        "練習を始める",
+        () => { resetGame(); }
     );
-
-    osc.stop(ctx.currentTime+duration/1000);
 }
 
 async function nextRound(){
+    canTap = false;
+    playerIndex = 0;
 
-    canTap=false;
-    playerIndex=0;
+    if (isTutorial) {
+        sequence = [...tutorialSequences[tutorialStep]];
+        levelEl.textContent = "練習 " + (tutorialStep + 1);
+        statusEl.textContent = "パネルに注目！";
+    } else {
+        sequence.push(Math.floor(Math.random() * 9));
+        levelEl.textContent = sequence.length;
+        statusEl.textContent = "覚えて！";
+    }
 
-    sequence.push(
-        Math.floor(Math.random()*9)
-    );
+    await sleep(400);
 
-    levelEl.textContent=sequence.length;
-
-    statusEl.textContent="覚えて！";
-
-    await sleep(250);
-
+    // お手本の発光演出
     for(let index of sequence){
-
         cells[index].classList.add("active");
-
-        playSound(480,70);
-
+        playSound(480, 70);
         await sleep(220);
-
         cells[index].classList.remove("active");
-
         await sleep(80);
     }
 
-    statusEl.textContent=
-        "順番どおりタップ！";
-
-    canTap=true;
+    // 発光が終わった後の処理
+    if (isTutorial) {
+        if (tutorialStep === 0) {
+            showTutorialPopup(
+                "ステップ 1",
+                "真ん中のパネルが1回光りましたね！<br>覚えたパネルをタップしてみましょう。",
+                "やってみる！",
+                () => { 
+                    statusEl.textContent = "パネルをタップ！";
+                    canTap = true; 
+                }
+            );
+        } else {
+            showTutorialPopup(
+                "ステップ 2",
+                "今度は2つのパネルが連続で光りました！<br>光った【順番通り】にタップしてください。",
+                "やってみる！",
+                () => { 
+                    statusEl.textContent = "順番通りにタップ！";
+                    canTap = true; 
+                }
+            );
+        }
+    } else {
+        statusEl.textContent = "順番どおりタップ！";
+        canTap = true;
+    }
 }
 
 function tapCell(index){
-
-    if(!canTap)return;
+    if(!canTap) return;
 
     cells[index].classList.add("player");
+    playSound(700, 50);
 
-    playSound(700,50);
-
-    setTimeout(()=>{
+    setTimeout(() => {
         cells[index].classList.remove("player");
-    },100);
+    }, 100);
 
-    if(index===sequence[playerIndex]){
-
+    if(index === sequence[playerIndex]){
+        // 正解
         playerIndex++;
 
-        if(playerIndex===sequence.length){
+        if(playerIndex === sequence.length){
+            canTap = false;
 
-            score++;
-            scoreEl.textContent=score;
-
-            canTap=false;
-
-            statusEl.textContent=
-                "成功！";
-
-            setTimeout(()=>{
-                nextRound();
-            },350);
+            if (isTutorial) {
+                tutorialStep++;
+                
+                if (tutorialStep >= tutorialSequences.length) {
+                    // 全チュートリアル完了
+                    setTimeout(() => {
+                        showTutorialPopup(
+                            "ミッション完了！",
+                            "素晴らしい！カンペキです。ルールはバッチリ頭に入りましたね！<br><br>「本番スタート」を押すと、ランダムに光る果てなき記憶力の戦いが始まります！",
+                            "本番スタート！",
+                            () => {
+                                isTutorial = false;
+                                localStorage.setItem("neonTutorialDone", "true");
+                                resetGame();
+                            }
+                        );
+                    }, 400);
+                } else {
+                    // 次のステップへ
+                    setTimeout(() => {
+                        showTutorialPopup(
+                            "ナイス！",
+                            "大正解！次はちょっとだけ難しくなりますよ。連続で光る演出に注目してください。",
+                            "次の練習へ",
+                            () => { nextRound(); }
+                        );
+                    }, 400);
+                }
+            } else {
+                score++;
+                scoreEl.textContent = score;
+                statusEl.textContent = "成功！";
+                setTimeout(nextRound, 350);
+            }
         }
-
-    }else{
-        gameOver();
+    } else {
+        // 不正解
+        if (isTutorial) {
+            canTap = false;
+            playSound(140, 300);
+            showTutorialPopup(
+                "おっと！",
+                "タップする場所か、順番を間違えてしまったようです。<br>もう一度お手本をよく見てみましょう！",
+                "もう一度お手本を見る",
+                () => { nextRound(); }
+            );
+        } else {
+            gameOver();
+        }
     }
 }
 
 function gameOver(){
+    canTap = false;
+    playSound(140, 300);
 
-    canTap=false;
-
-    playSound(140,300);
-
-    if(score>best){
-        best=score;
-        localStorage.setItem(
-            "neonBest",
-            best
-        );
+    if(score > best){
+        best = score;
+        localStorage.setItem("neonBest", best);
     }
-
-    bestEl.textContent=best;
-
-    finalScore.textContent=
-        "SCORE : "+score;
-
+    bestEl.textContent = best;
+    finalScore.textContent = "SCORE : " + score;
     gameOverModal.classList.add("show");
 }
 
 function restartImmediately(){
-
     gameOverModal.classList.remove("show");
     resetGame();
 }
 
 function resetGame(){
+    sequence = [];
+    playerIndex = 0;
+    score = 0;
+    scoreEl.textContent = 0;
+    
+    if (isTutorial) {
+        levelEl.textContent = "練習";
+    } else {
+        levelEl.textContent = 0;
+    }
 
-    sequence=[];
-    playerIndex=0;
-    score=0;
-
-    scoreEl.textContent=0;
-    levelEl.textContent=0;
-
-    gameStarted=true;
-
+    gameStarted = true;
     nextRound();
 }
 
 function confirmRestart(){
-
     closeConfirmModal();
-    resetGame();
+    if (pendingAction === "tutorial") {
+        startTutorialFlow();
+    } else {
+        isTutorial = false;
+        resetGame();
+    }
 }
 
 function closeConfirmModal(){
     confirmModal.classList.remove("show");
 }
 
-document.getElementById("startBtn")
-.addEventListener("click",()=>{
-
+// STARTボタン
+document.getElementById("startBtn").addEventListener("click", () => {
     if(gameStarted){
+        pendingAction = "start";
+        confirmTitle.textContent = "RESTART ?";
+        confirmText.textContent = "最初からやり直しますか？";
         confirmModal.classList.add("show");
         return;
     }
 
-    gameStarted=true;
-    resetGame();
+    gameStarted = true;
+
+    // 初回プレイ時（ブラウザに記録がない場合）のみチュートリアルを強制起動
+    if (localStorage.getItem("neonTutorialDone") !== "true") {
+        startTutorialFlow();
+    } else {
+        isTutorial = false;
+        resetGame();
+    }
+});
+
+// TUTORIALボタン (手動起動)
+menuTutorialBtn.addEventListener("click", () => {
+    if(gameStarted){
+        pendingAction = "tutorial";
+        confirmTitle.textContent = "TUTORIAL ?";
+        confirmText.textContent = "現在のゲームを中断して、チュートリアルを始めますか？";
+        confirmModal.classList.add("show");
+        return;
+    }
+
+    gameStarted = true;
+    startTutorialFlow();
 });
 </script>
 
