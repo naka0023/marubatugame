@@ -2,24 +2,15 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Google Font -->
-<link rel="preconnect"
-      href="https://fonts.googleapis.com">
-
-<link rel="preconnect"
-      href="https://fonts.gstatic.com"
-      crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&display=swap"
-      rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yusei+Magic&display=swap" rel="stylesheet">
 
 <title>〇×ゲーム</title>
 
 <style>
-
 *{
     box-sizing:border-box;
 }
@@ -27,21 +18,12 @@
 body{
     margin:0;
     min-height:100vh;
-
-    font-family:
-      'Yusei Magic',
-      sans-serif;
-
+    font-family: 'Yusei Magic', sans-serif;
     color:white;
-
     display:flex;
     justify-content:center;
     align-items:center;
-
-    background:
-      radial-gradient(circle at top,
-      #1f2937,#0d1117);
-
+    background: radial-gradient(circle at top, #1f2937,#0d1117);
     padding:20px;
 }
 
@@ -49,26 +31,13 @@ body{
 .container{
     width:100%;
     max-width:480px;
-
     text-align:center;
-
-    background:
-      rgba(255,255,255,0.08);
-
-    border:
-      1px solid
-      rgba(255,255,255,0.08);
-
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius:32px;
-
     padding:28px;
-
-    backdrop-filter:
-      blur(14px);
-
-    box-shadow:
-      0 0 30px
-      rgba(0,255,255,.08);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 0 30px rgba(0,255,255,.08);
 }
 
 h1{
@@ -88,126 +57,69 @@ table{
 td{
     width:100px;
     height:100px;
-
     text-align:center;
     vertical-align:middle;
-
     font-size:42px;
-
     cursor:pointer;
-
     border-radius:22px;
-
-    background:
-      rgba(255,255,255,0.08);
-
-    border:
-      1px solid
-      rgba(255,255,255,0.08);
-
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.08);
     transition:.2s;
 }
 
 td:hover{
     transform:translateY(-2px);
-
-    box-shadow:
-      0 0 18px
-      rgba(0,255,255,.18);
+    box-shadow: 0 0 18px rgba(0,255,255,.18);
 }
 
 /* 勝利マス */
 td.winner{
-    background:
-      linear-gradient(
-      135deg,
-      #f59e0b,
-      #ef4444
-      );
-
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
     color:white;
 }
 
-/* 次に消えるマス（見やすく変更） */
+/* 次に消えるマス */
 td.disabled{
     cursor:not-allowed;
-
-    background:
-      linear-gradient(
-      135deg,
-      rgba(239,68,68,.35),
-      rgba(245,158,11,.25)
-      );
-
-    border:
-      2px solid #ff6b6b;
-
-    box-shadow:
-      0 0 12px rgba(255,90,90,.6),
-      inset 0 0 10px rgba(255,90,90,.2);
-
-    animation:
-      warningPulse 1.2s infinite;
+    background: linear-gradient(135deg, rgba(239,68,68,.35), rgba(245,158,11,.25));
+    border: 2px solid #ff6b6b;
+    box-shadow: 0 0 12px rgba(255,90,90,.6), inset 0 0 10px rgba(255,90,90,.2);
+    animation: warningPulse 1.2s infinite;
 }
 
 /* ふわっと点滅 */
 @keyframes warningPulse{
-
-    0%{
-        box-shadow:
-          0 0 10px rgba(255,90,90,.4),
-          inset 0 0 8px rgba(255,90,90,.15);
-    }
-
-    50%{
-        box-shadow:
-          0 0 24px rgba(255,90,90,.9),
-          inset 0 0 18px rgba(255,90,90,.3);
-    }
-
-    100%{
-        box-shadow:
-          0 0 10px rgba(255,90,90,.4),
-          inset 0 0 8px rgba(255,90,90,.15);
-    }
+    0%{ box-shadow: 0 0 10px rgba(255,90,90,.4), inset 0 0 8px rgba(255,90,90,.15); }
+    50%{ box-shadow: 0 0 24px rgba(255,90,90,.9), inset 0 0 18px rgba(255,90,90,.3); }
+    100%{ box-shadow: 0 0 10px rgba(255,90,90,.4), inset 0 0 8px rgba(255,90,90,.15); }
 }
 
-/* ボタン */
+/* ボタン共通設定 */
 button{
     margin-top:24px;
-
     border:none;
-
     border-radius:20px;
-
     padding:14px 22px;
-
     font-size:16px;
-
     cursor:pointer;
-
     color:white;
-
-    background:
-      linear-gradient(
-      135deg,
-      #8b5cf6,
-      #2563eb
-      );
-
+    background: linear-gradient(135deg, #8b5cf6, #2563eb);
     transition:.2s;
 }
 
 button:hover{
     transform:translateY(-2px);
-
-    box-shadow:
-      0 0 20px
-      rgba(99,102,241,.4);
+    box-shadow: 0 0 20px rgba(99,102,241,.4);
 }
 
 button:active{
     transform:scale(.97);
+}
+
+/* 遊び方ボタンの個別スタイル */
+.btn-tutorial {
+    background: linear-gradient(135deg, #10b981, #059669);
+    margin-left: 8px;
 }
 
 /* ステータス */
@@ -217,35 +129,73 @@ button:active{
     opacity:.9;
 }
 
-/* スマホ */
-@media(max-width:600px){
-
-    .container{
-        padding:20px;
-    }
-
-    h1{
-        font-size:28px;
-    }
-
-    td{
-        width:82px;
-        height:82px;
-        font-size:36px;
-    }
-
-    button{
-        width:100%;
-    }
+/* ==========================================
+   ▼ 追加：チュートリアル（モーダル）のスタイル
+   ========================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.3s ease;
 }
 
+.modal-content {
+    background: rgba(31, 41, 55, 0.95);
+    border: 2px solid rgba(0, 255, 255, 0.2);
+    border-radius: 24px;
+    padding: 30px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #00ffff;
+    font-size: 24px;
+}
+
+.modal-content ul {
+    text-align: left;
+    padding-left: 20px;
+    line-height: 1.8;
+    font-size: 15px;
+}
+
+.modal-content li {
+    margin-bottom: 10px;
+}
+
+/* 非表示にするためのクラス */
+.modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* スマホ対応 */
+@media(max-width:600px){
+    .container{ padding:20px; }
+    h1{ font-size:28px; }
+    td{ width:82px; height:82px; font-size:36px; }
+    button{ width:100%; margin-left: 0; margin-top: 12px; }
+    .btn-tutorial { margin-top: 10px; }
+}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-
     <h1>⭕❌ 〇×ゲーム</h1>
 
     <table id="board">
@@ -254,13 +204,11 @@ button:active{
             <td data-index="1"></td>
             <td data-index="2"></td>
         </tr>
-
         <tr>
             <td data-index="3"></td>
             <td data-index="4"></td>
             <td data-index="5"></td>
         </tr>
-
         <tr>
             <td data-index="6"></td>
             <td data-index="7"></td>
@@ -268,21 +216,42 @@ button:active{
         </tr>
     </table>
 
-    <button onclick="resetGame()">
-        ゲームをリセット
-    </button>
+    <button onclick="resetGame()">ゲームをリセット</button>
+    
+    <button class="btn-tutorial" onclick="toggleTutorial(false)">遊び方を見る</button>
 
-    <p id="status">
-        プレイヤーXのターンです
-    </p>
+    <p id="status">プレイヤーXのターンです</p>
+</div>
 
+<div id="tutorialModal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>🎮 遊び方のルール</h2>
+        <ul>
+            <li>2人プレイ用のゲームです。</li>
+            <li>空いているマスをタップして <b>❌</b> と <b>⭕</b> を交互に配置します。</li>
+            <li>縦・横・斜めのいずれかに3つ揃えた方が勝ち！</li>
+            <li><span style="color: #ff6b6b; font-weight: bold;">【特殊ルール】</span> 4つ目のマークを置くと、自分が<b>一番最初に置いたマークが消えてしまいます！</b></li>
+            <li>赤く点滅しているマスが<b>「次に消えるマス」</b>です。消える前に勝負を決めましょう！</li>
+        </ul>
+        <button onclick="toggleTutorial(true)">ゲームスタート！</button>
+    </div>
 </div>
 
 <script src="script.js"></script>
 
+<script>
+function toggleTutorial(hide) {
+    const modal = document.getElementById('tutorialModal');
+    if (hide) {
+        modal.classList.add('hidden');
+    } else {
+        modal.classList.remove('hidden');
+    }
+}
+</script>
+
 <audio id="btn_audio">
-    <source src="./audio/btn_audio.mp3"
-            type="audio/mp3">
+    <source src="./audio/btn_audio.mp3" type="audio/mp3">
 </audio>
 
 </body>
