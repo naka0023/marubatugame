@@ -53,8 +53,27 @@ body{
 }
 
 h1{
-  margin:0 0 24px;
+  margin:0 0 12px;
   font-size:32px;
+}
+
+/* チュートリアルを開くボタン */
+#tutorial-open-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #9ca3af;
+  padding: 6px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 24px;
+  transition: .2s;
+}
+
+#tutorial-open-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  box-shadow: 0 0 12px rgba(255,255,255,0.1);
 }
 
 /* ボード */
@@ -225,6 +244,77 @@ h1{
   transform:scale(.97);
 }
 
+/* チュートリアルモーダル */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content {
+  background: rgba(31, 41, 55, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.2);
+  padding: 30px;
+  border-radius: 24px;
+  max-width: 500px;
+  width: 90%;
+  text-align: left;
+  transform: scale(0.9);
+  transition: transform .3s ease;
+}
+
+.modal-overlay.active .modal-content {
+  transform: scale(1);
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  font-size: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+  color: #ff8a65;
+}
+
+.modal-content ul {
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.modal-content li {
+  margin-bottom: 12px;
+}
+
+#modal-close-btn {
+  display: block;
+  width: 100%;
+  margin-top: 24px;
+  padding: 12px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #8b5cf6, #2563eb);
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  transition: .2s;
+}
+
 /* スマホ */
 @media(max-width:600px){
 
@@ -272,17 +362,15 @@ h1{
 <body>
   <div class="container">
 
-    <!-- 上段 -->
     <header class="header-area">
       <h1>🎲 ペンタロール</h1>
+      <button id="tutorial-open-btn">❓ 遊び方を見る</button>
     </header>
 
-    <!-- 中段 -->
     <main class="game-area">
       <div id="board-container"></div>
     </main>
 
-    <!-- 下段 -->
     <footer class="status-area">
       <div id="status">オレンジのターンです</div>
 
@@ -293,10 +381,24 @@ h1{
 
   </div>
 
+  <div id="tutorial-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>🎮 ペンタロールの遊び方</h2>
+      <ul>
+        <li><strong>ルール：</strong>オレンジと白の2手番に分かれて交互にボールを盤面に滑り込ませるゲームです。</li>
+        <li><strong>操作方法：</strong>盤面の外側にある青紫の矢印ボタン（↓ ↑ → ←）を押すと、その列の端から自分のボールが1つ挿入されます。</li>
+        <li><strong>押し出し：</strong>すでにボールが置かれている列に新しく挿入すると、中にあるすべてのボールが奥へ1マスずつスライドして押し出されます。</li>
+        <li><strong>勝利条件：</strong>縦・横・斜めのいずれかの直線上に、自分のボールを<strong>5つ連続</strong>で並べたプレイヤーの勝利となります！</li>
+      </ul>
+      <button id="modal-close-btn">ゲームを始める</button>
+    </div>
+  </div>
+
   <script>
     const SIZE = 6;
     const board = Array(SIZE).fill().map(() => Array(SIZE).fill(null));
     let currentPlayer = 'black';
+    let isGameOver = false; // 勝敗決定後の操作をロックするフラグ
     const boardContainer = document.getElementById('board-container');
     const statusElement = document.getElementById('status');
 
@@ -351,6 +453,8 @@ h1{
     }
 
     function insertBall(direction, index) {
+      if (isGameOver) return; // ゲーム終了後は操作不可
+
       let canInsert = false;
       if (direction === 'top') {
         for (let r = 0; r < SIZE; r++) {
@@ -408,6 +512,7 @@ h1{
 
       if (winCells.length > 0) {
         statusElement.textContent = `${currentPlayer === 'black' ? 'オレンジ' : '白'}の勝ち！`;
+        isGameOver = true;
       } else {
         currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
         statusElement.textContent = `${currentPlayer === 'black' ? 'オレンジ' : '白'}のターンです`;
@@ -444,9 +549,21 @@ h1{
         }
       }
       currentPlayer = 'black';
+      isGameOver = false;
       statusElement.textContent = 'オレンジのターンです';
       renderBoard();
     }
+
+    // モーダルの開閉制御
+    const modal = document.getElementById('tutorial-modal');
+    const openBtn = document.getElementById('tutorial-open-btn');
+    const closeBtn = document.getElementById('modal-close-btn');
+
+    openBtn.addEventListener('click', () => modal.classList.add('active'));
+    closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('active');
+    });
 
     document.getElementById('reset-button').addEventListener('click', resetGame);
 

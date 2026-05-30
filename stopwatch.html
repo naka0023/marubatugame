@@ -26,6 +26,7 @@ body{
 .container{
     width:min(92vw,560px);
     padding:20px;
+    position: relative;
 }
 
 .title{
@@ -43,6 +44,13 @@ body{
     padding:26px;
     backdrop-filter:blur(12px);
     box-shadow:0 0 40px rgba(0,217,255,.15), inset 0 0 20px rgba(255,255,255,.04);
+    transition: all 0.3s ease;
+}
+
+/* チュートリアル時にパネルを黒背景(9990)より上、ポップアップ(10000)より下に配置 */
+.panel.tutorial-panel-focus {
+    position: relative;
+    z-index: 9995;
 }
 
 .target{
@@ -55,6 +63,8 @@ body{
     display:flex;
     gap:10px;
     margin-bottom:20px;
+    border-radius: 18px;
+    transition: all 0.3s;
 }
 
 .mode-btn{
@@ -85,11 +95,15 @@ body{
     margin:25px 0;
     color:#7be9ff;
     text-shadow:0 0 10px #00e5ff,0 0 30px #00e5ff,0 0 60px #00e5ff;
+    border-radius: 14px;
+    transition: all 0.3s;
 }
 
 .buttons{
     display:flex;
     gap:12px;
+    border-radius: 22px;
+    transition: all 0.3s;
 }
 
 button{
@@ -178,6 +192,130 @@ button:disabled{opacity:.4;}
     from{transform:scale(1);}
     to{transform:scale(1.08);}
 }
+
+/* ==========================================
+   チュートリアル用のスタイル（追従型にアップデート）
+   ========================================== */
+.help-btn {
+    position: absolute;
+    top: 24px;
+    right: 20px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(0,217,255,.4);
+    border-radius: 50% !important;
+    width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    font-size: 18px !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 0 10px rgba(0,217,255,.2);
+    transition: all 0.2s;
+}
+.help-btn:hover {
+    background: rgba(0,217,255,.2);
+    box-shadow: 0 0 15px rgba(0,217,255,.6);
+    transform: scale(1.05);
+}
+
+/* 暗い背景レイヤー */
+.tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 9990;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+.tutorial-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ポップアップ専用レイヤー */
+.tutorial-popup-wrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+.tutorial-popup-wrap.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 【変更】position: absoluteにし、JSで位置を滑らかに動かす */
+.tutorial-card {
+    position: absolute;
+    background: #0b0e17;
+    border: 2px solid #ffe44d;
+    box-shadow: 0 0 30px rgba(255, 228, 77, 0.3);
+    border-radius: 24px;
+    width: min(88vw, 400px);
+    padding: 24px;
+    color: white;
+    text-align: center;
+    transition: top 0.3s ease, bottom 0.3s ease, left 0.3s ease, transform 0.3s ease;
+}
+
+.tutorial-progress {
+    font-size: 14px;
+    color: #ffe44d;
+    margin-bottom: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.tutorial-text {
+    font-size: 17px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tutorial-footer {
+    display: flex;
+    gap: 12px;
+}
+
+.tutorial-btn {
+    flex: 1;
+    padding: 12px !important;
+    font-size: 16px !important;
+    font-weight: 900 !important;
+    border-radius: 14px !important;
+    margin: 0 !important;
+}
+.tutorial-btn.skip {
+    background: rgba(255,255,255,.1);
+    color: #ccc;
+}
+.tutorial-btn.next {
+    background: linear-gradient(135deg, #ffe44d, #ffb300);
+    color: #000;
+}
+
+.tutorial-focus {
+    outline: 3px solid #ffe44d !important;
+    outline-offset: 4px;
+    box-shadow: 0 0 25px #ffe44d !important;
+    animation: pulse 0.6s infinite alternate !important;
+}
 </style>
 </head>
 
@@ -185,13 +323,15 @@ button:disabled{opacity:.4;}
 
 <div class="container">
 
+<button id="helpBtn" class="help-btn" title="遊び方を見る">❓</button>
+
 <div class="title">STOPWATCH CHALLENGE</div>
 
-<div class="panel">
+<div class="panel" id="gamePanel">
 
 <div class="target" id="targetText">🎯 3秒で止めろ</div>
 
-<div class="mode-buttons">
+<div class="mode-buttons" id="stepMode">
 <button class="mode-btn active" data-sec="3">3秒</button>
 <button class="mode-btn" data-sec="5">5秒</button>
 <button class="mode-btn" data-sec="10">10秒</button>
@@ -199,7 +339,7 @@ button:disabled{opacity:.4;}
 
 <div class="timer" id="timer">0.000</div>
 
-<div class="buttons">
+<div class="buttons" id="stepButtons">
 <button id="startBtn" class="start">START</button>
 <button id="stopBtn" class="stop" disabled>STOP</button>
 </div>
@@ -222,6 +362,18 @@ button:disabled{opacity:.4;}
 
 </div>
 
+<div class="tutorial-overlay" id="tutorialOverlay"></div>
+<div class="tutorial-popup-wrap" id="tutorialPopupWrap">
+  <div class="tutorial-card" id="tutorialCard">
+    <div class="tutorial-progress" id="tutorialProgress">1 / 4</div>
+    <div class="tutorial-text" id="tutorialText">ここに説明が入ります</div>
+    <div class="tutorial-footer">
+      <button class="tutorial-btn skip" id="tutorialSkip">スキップ</button>
+      <button class="tutorial-btn next" id="tutorialNext">次へ</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const timerEl = document.getElementById("timer");
 const resultEl = document.getElementById("result");
@@ -235,7 +387,7 @@ let startTime = 0;
 let running = false;
 let animationId;
 
-let targetSeconds = 3; // ← 初期値修正
+let targetSeconds = 3; 
 
 document.querySelectorAll(".mode-btn").forEach(btn=>{
     btn.addEventListener("click",()=>{
@@ -256,11 +408,9 @@ function updateTimer(){
     const elapsed =
     (performance.now() - startTime) / 1000;
 
-    // 3秒モードは最初から非表示
     if(targetSeconds === 3){
         timerEl.textContent = "???";
     }else{
-        // 5秒・10秒は1.5秒後に非表示
         if(elapsed < 1.5){
             timerEl.textContent = elapsed.toFixed(3);
         }else{
@@ -343,6 +493,106 @@ resetBtn.onclick = ()=>{
     startBtn.disabled = false;
     stopBtn.disabled = true;
 };
+
+/* ==========================================
+   チュートリアル用の制御JavaScript（位置自動追従版）
+   ========================================== */
+const overlay = document.getElementById("tutorialOverlay");
+const popupWrap = document.getElementById("tutorialPopupWrap");
+const cardEl = document.getElementById("tutorialCard"); // 追加
+const progressEl = document.getElementById("tutorialProgress");
+const textEl = document.getElementById("tutorialText");
+const nextBtn = document.getElementById("tutorialNext");
+const skipBtn = document.getElementById("tutorialSkip");
+const helpBtn = document.getElementById("helpBtn");
+const gamePanel = document.getElementById("gamePanel");
+
+let currentStep = 0;
+
+const steps = [
+    {
+        text: "🎯 STOPWATCH CHALLENGE へようこそ！<br>体内時計を頼リに、目標ぴったりでタイマーを止めるゲームです。",
+        element: null
+    },
+    {
+        text: "⏱ ここに並んでいる「3秒」「5秒」「10秒」のボタンで、挑戦したい目標秒数を切り替えます。",
+        element: document.getElementById("stepMode")
+    },
+    {
+        text: "💡 STARTするとカウントが始まりますが、途中で画面が『???』に隠れてしまいます！自分の感覚を信じて数えましょう。",
+        element: document.getElementById("timer")
+    },
+    {
+        text: "🚀 ここだ！というタイミングでSTOP！<br>誤差0.01秒以内の『PERFECT』を目指しましょう！",
+        element: document.getElementById("stepButtons")
+    }
+];
+
+function showStep(index) {
+    document.querySelectorAll(".tutorial-focus").forEach(el => el.classList.remove("tutorial-focus"));
+    gamePanel.classList.remove("tutorial-panel-focus");
+
+    if (index >= steps.length) {
+        closeTutorial();
+        return;
+    }
+
+    currentStep = index;
+    const step = steps[index];
+
+    progressEl.textContent = `${index + 1} / ${steps.length}`;
+    textEl.innerHTML = step.text;
+    nextBtn.textContent = index === steps.length - 1 ? "ゲーム開始！" : "次へ";
+
+    if (step.element) {
+        gamePanel.classList.add("tutorial-panel-focus");
+        step.element.classList.add("tutorial-focus");
+
+        // 【新機能】光っている要素の位置を取得し、その近くにポップアップを移動
+        const rect = step.element.getBoundingClientRect();
+        cardEl.style.left = "50%";
+        cardEl.style.transform = "translateX(-50%)";
+
+        // 要素が画面の下半分にあれば上に、上半分にあれば下に配置（被り防止）
+        if (rect.top > window.innerHeight / 2) {
+            cardEl.style.top = "auto";
+            cardEl.style.bottom = `${window.innerHeight - rect.top + 15}px`;
+        } else {
+            cardEl.style.bottom = "auto";
+            cardEl.style.top = `${rect.bottom + 15}px`;
+        }
+    } else {
+        // 最初のステップ（全体説明）は画面中央に配置
+        cardEl.style.top = "50%";
+        cardEl.style.bottom = "auto";
+        cardEl.style.left = "50%";
+        cardEl.style.transform = "translate(-50%, -50%)";
+    }
+}
+
+function openTutorial() {
+    overlay.classList.add("active");
+    popupWrap.classList.add("active");
+    showStep(0);
+}
+
+function closeTutorial() {
+    overlay.classList.remove("active");
+    popupWrap.classList.remove("active");
+    document.querySelectorAll(".tutorial-focus").forEach(el => el.classList.remove("tutorial-focus"));
+    gamePanel.classList.remove("tutorial-panel-focus");
+    localStorage.setItem("stopwatch_tutorial_played", "true");
+}
+
+nextBtn.onclick = () => showStep(currentStep + 1);
+skipBtn.onclick = closeTutorial;
+helpBtn.onclick = openTutorial;
+
+window.addEventListener("DOMContentLoaded", () => {
+    if (!localStorage.getItem("stopwatch_tutorial_played")) {
+        openTutorial();
+    }
+});
 </script>
 
 </body>

@@ -145,6 +145,7 @@ button{
     color:#fff;
     padding:24px 12px;
     cursor:pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
 }
 
 button:active{
@@ -214,6 +215,25 @@ button:active{
     padding:20px;
 }
 
+/* チュートリアルボタン用のスタイル */
+#tutorialBtn {
+    margin-top: 12px;
+    width: 100%;
+    background: linear-gradient(135deg, #7e57c2, #5e35b1);
+    font-size: 24px;
+    border-radius: 20px;
+    padding: 15px;
+}
+
+/* チュートリアル中のナビゲーション点滅アニメーション */
+.pulse {
+    animation: pulseBtn 1s infinite alternate !important;
+}
+@keyframes pulseBtn {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+    100% { transform: scale(1.05); box-shadow: 0 0 20px 8px rgba(255,255,255,0.8); }
+}
+
 .feedback{
     position:fixed;
     top:50%;
@@ -263,6 +283,11 @@ button:active{
         font-size:24px;
         padding:20px 10px;
     }
+    
+    #tutorialBtn {
+        font-size: 20px;
+        padding: 12px;
+    }
 }
 </style>
 </head>
@@ -273,11 +298,15 @@ button:active{
 
     <h1>🎨 いろちタイムアタック</h1>
 
+    <div id="tutorialBox" style="display:none; width:100%; background:rgba(30,30,42,0.95); border:2px solid #7e57c2; border-radius:18px; padding:15px; text-align:center; font-size:15px; line-height:1.6; box-shadow:0 6px 20px rgba(0,0,0,0.4); margin-bottom:10px; z-index:5;">
+        <div id="tutorialText"></div>
+    </div>
+
     <div class="topBar">
 
         <div class="statBox">
             <div class="label">
-                残り時間
+                Remaining Time
             </div>
             <div class="value"
                  id="time">
@@ -287,7 +316,7 @@ button:active{
 
         <div class="statBox">
             <div class="label">
-                スコア
+                Score
             </div>
             <div class="value"
                  id="score">
@@ -297,7 +326,7 @@ button:active{
 
         <div class="statBox">
             <div class="label">
-                コンボ
+                Combo
             </div>
             <div class="value"
                  id="combo">
@@ -346,7 +375,11 @@ button:active{
         </p>
 
         <button id="startBtn">
-            START
+            ゲームを始める
+        </button>
+
+        <button id="tutorialBtn">
+            遊び方
         </button>
 
     </div>
@@ -384,6 +417,10 @@ let timer = null;
 let currentAnswer = false;
 let playing = false;
 
+// チュートリアル用の状態管理変数
+let isTutorial = false;
+let tutorialStep = 0;
+
 const timeEl =
     document.getElementById("time");
 
@@ -404,6 +441,12 @@ const overlay =
 
 const feedback =
     document.getElementById("feedback");
+
+// 追加した要素の取得
+const irochiBtn = document.getElementById("irochiBtn");
+const safeBtn = document.getElementById("safeBtn");
+const tutorialBox = document.getElementById("tutorialBox");
+const tutorialText = document.getElementById("tutorialText");
 
 function randomIndex(){
     return Math.floor(
@@ -527,6 +570,99 @@ function answer(userChoice){
     nextQuestion();
 }
 
+/* --- チュートリアル用のロジック --- */
+
+function startTutorial() {
+    isTutorial = true;
+    tutorialStep = 1;
+    overlay.style.display = "none";
+    tutorialBox.style.display = "block";
+    
+    // 表示のマスク
+    timeEl.textContent = "30";
+    scoreEl.textContent = "-";
+    comboEl.textContent = "-";
+    
+    setupTutorialStep();
+}
+
+function setupTutorialStep() {
+    // ボタンの強調をリセット
+    irochiBtn.classList.remove("pulse");
+    safeBtn.classList.remove("pulse");
+    
+    if (tutorialStep === 1) {
+        // 例1：すべてバラバラ（背景：赤、文字色：青、文字：みどり）
+        cardEl.style.background = colors[0].color;
+        wordEl.style.color = colors[1].color;
+        wordEl.textContent = colors[3].name;
+        
+        tutorialText.innerHTML = `
+            <span style="color:#b39ddb; font-weight:bold; font-size:16px;">💡 チュートリアル (1/2)</span><br>
+            カードの<strong style="color:${colors[0].color}">背景は「あか」</strong>、<strong style="color:${colors[1].color}">文字の色は「あお」</strong>、<strong style="color:#fff">文字は「みどり」</strong>です。<br>
+            3つが<span style="color:#ff9800; font-weight:bold;">すべてバラバラ</span>なので、これは<span style="color:#ff9800; font-weight:bold;">「いろち」</span>！<br>
+            光っているボタンを押してみましょう。
+        `;
+        irochiBtn.classList.add("pulse");
+    } else if (tutorialStep === 2) {
+        // 例2：被りあり（背景：あお、文字色：あお、文字：きいろ）
+        cardEl.style.background = colors[1].color;
+        wordEl.style.color = colors[1].color;
+        wordEl.textContent = colors[2].name;
+        
+        tutorialText.innerHTML = `
+            <span style="color:#b39ddb; font-weight:bold; font-size:16px;">💡 チュートリアル (2/2)</span><br>
+            カードの<strong style="color:${colors[1].color}">背景は「あお」</strong>、<strong style="color:${colors[1].color}">文字の色も「あお」</strong>です。<br>
+            1つでも同じ要素（被り）があれば<span style="color:#2196f3; font-weight:bold;">「セーフ」</span>になります！<br>
+            光っているボタンを押してみましょう。
+        `;
+        safeBtn.classList.add("pulse");
+    }
+}
+
+function handleTutorialAnswer(userChoice) {
+    const isCorrect = (tutorialStep === 1 && userChoice === true) || (tutorialStep === 2 && userChoice === false);
+    
+    if (isCorrect) {
+        showFeedback(true);
+        cardEl.classList.add("correct");
+        setTimeout(() => cardEl.classList.remove("correct"), 150);
+        
+        if (tutorialStep === 1) {
+            tutorialStep = 2;
+            setTimeout(setupTutorialStep, 600);
+        } else {
+            setTimeout(finishTutorial, 600);
+        }
+    } else {
+        showFeedback(false);
+        cardEl.classList.add("wrong");
+        setTimeout(() => cardEl.classList.remove("wrong"), 250);
+    }
+}
+
+function finishTutorial() {
+    isTutorial = false;
+    tutorialBox.style.display = "none";
+    irochiBtn.classList.remove("pulse");
+    safeBtn.classList.remove("pulse");
+    
+    overlay.innerHTML = `
+        <div class="panel">
+            <h2>チュートリアル完了！ 🎉</h2>
+            <p>ルールの理解はバッチリです！</p>
+            <p class="small">30秒間で最高スコアを目指しましょう！</p>
+            <button id="startBtn">ゲームを始める</button>
+        </div>
+    `;
+    overlay.style.display = "flex";
+    
+    // 新しく生成されたSTARTボタンにイベントを再割り当て
+    document.getElementById("startBtn").onclick = startGame;
+}
+
+/* --- ゲームの開始・終了 --- */
+
 function startGame(){
 
     score = 0;
@@ -604,6 +740,10 @@ function finishGame(){
             <button id="retryBtn">
                 もう一回
             </button>
+            
+            <button id="tutorialBtn" style="margin-top:12px; background:linear-gradient(135deg,#7e57c2,#5e35b1); width:100%; border:none; color:#fff; font-size:24px; border-radius:20px; padding:15px; cursor:pointer;">
+                遊び方を見る
+            </button>
         </div>
     `;
 
@@ -616,8 +756,17 @@ function finishGame(){
       )
       .onclick =
         startGame;
+        
+    // リザルト画面のチュートリアルボタンにもイベントを設定
+    document
+      .getElementById(
+        "tutorialBtn"
+      )
+      .onclick =
+        startTutorial;
 }
 
+// 最初のボタンイベント割り当て
 document
 .getElementById(
     "startBtn"
@@ -626,15 +775,28 @@ document
 
 document
 .getElementById(
+    "tutorialBtn"
+).onclick =
+    startTutorial;
+
+// チュートリアル中かゲーム中かで処理を分岐
+document
+.getElementById(
     "irochiBtn"
 ).onclick =
-    () => answer(true);
+    () => {
+        if (isTutorial) handleTutorialAnswer(true);
+        else answer(true);
+    };
 
 document
 .getElementById(
     "safeBtn"
 ).onclick =
-    () => answer(false);
+    () => {
+        if (isTutorial) handleTutorialAnswer(false);
+        else answer(false);
+    };
 </script>
 
 </body>

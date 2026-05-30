@@ -2,8 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>カップシャッフルゲーム</title>
 
@@ -100,6 +99,13 @@ h1{
     font-weight:bold;
 }
 
+/* ボタンレイアウト */
+.btn-group {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
 /* ボタン */
 button{
     border:none;
@@ -137,6 +143,66 @@ button:active{
 button:disabled{
     opacity:.5;
     cursor:not-allowed;
+}
+
+/* チュートリアル用サブボタン */
+.btn-secondary {
+    background:
+      linear-gradient(
+        135deg,
+        #64748b,
+        #475569
+      );
+}
+.btn-secondary:hover {
+    box-shadow:
+      0 0 30px
+      rgba(255,255,255,.1);
+}
+
+/* チュートリアルモーダル */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.modal.show {
+    display: flex;
+    opacity: 1;
+}
+.modal-content {
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 32px;
+    border-radius: 24px;
+    max-width: 440px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+.modal.show .modal-content {
+    transform: translateY(0);
+}
+.modal h2 {
+    margin: 0 0 16px;
+    font-size: 24px;
+    color: #06b6d4;
+}
+.modal p {
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0 0 24px;
+    color: #e2e8f0;
+    min-height: 76px;
 }
 
 /* メッセージ */
@@ -292,6 +358,11 @@ button:disabled{
     .status-value{
         font-size:20px;
     }
+    
+    .btn-group {
+        flex-direction: column;
+        gap: 10px;
+    }
 }
 
 </style>
@@ -339,9 +410,10 @@ id="speedDisplay">
 
 </div>
 
-<button id="startBtn">
-ゲーム開始
-</button>
+<div class="btn-group">
+    <button id="startBtn">ゲーム開始</button>
+    <button id="tutorialBtn" class="btn-secondary">遊び方</button>
+</div>
 
 <div id="message"></div>
 
@@ -363,6 +435,14 @@ data-index="2"></div>
 
 </div>
 </div>
+</div>
+
+<div id="tutorialModal" class="modal">
+    <div class="modal-content">
+        <h2 id="tutorialTitle">遊び方</h2>
+        <p id="tutorialText">ここに説明文が入ります。</p>
+        <button id="tutorialNextBtn">次へ</button>
+    </div>
 </div>
 
 <script>
@@ -391,6 +471,13 @@ const speedDisplay =
 document.getElementById(
 "speedDisplay"
 );
+
+// チュートリアル用の要素
+const tutorialBtn = document.getElementById("tutorialBtn");
+const tutorialModal = document.getElementById("tutorialModal");
+const tutorialTitle = document.getElementById("tutorialTitle");
+const tutorialText = document.getElementById("tutorialText");
+const tutorialNextBtn = document.getElementById("tutorialNextBtn");
 
 let cupOrder =
 [0,1,2];
@@ -472,7 +559,7 @@ window.addEventListener(
 function sleep(ms){
     return new Promise(
         resolve =>
-        setTimeout(resolve,ms)
+            setTimeout(resolve,ms)
     );
 }
 
@@ -556,6 +643,7 @@ startBtn.addEventListener(
 async ()=>{
 
     startBtn.disabled=true;
+    tutorialBtn.disabled=true; // ゲーム中はチュートリアルを無効化
     canSelect=false;
 
     cupOrder=[0,1,2];
@@ -588,6 +676,7 @@ async ()=>{
     await shuffle();
 
     startBtn.disabled=false;
+    tutorialBtn.disabled=false;
 });
 
 /* 回答 */
@@ -647,6 +736,62 @@ updateStatus();
 
 });
 });
+
+
+/* --- チュートリアル機能のロジック --- */
+const tutorialSteps = [
+    {
+        title: "① ボールの位置を確認",
+        text: "ゲームが始まると、最初に金色のボールがどのカップに入っているかが表示されます。最初の位置をしっかり覚えましょう！"
+    },
+    {
+        title: "② シャッフルを追いかける",
+        text: "カップが伏せられ、激しくシャッフルされます。ボールが入ったカップがどこに移動するか、目を離さずに追いかけてください！"
+    },
+    {
+        title: "③ 正解のカップを当てる",
+        text: "シャッフルが止まったら、ボールが入っていると思うカップをタップします。レベルが上がるほどシャッフルの回数と速度がアップします！"
+    }
+];
+
+let currentStep = 0;
+
+function showStep() {
+    tutorialTitle.textContent = tutorialSteps[currentStep].title;
+    tutorialText.textContent = tutorialSteps[currentStep].text;
+    tutorialNextBtn.textContent = currentStep === tutorialSteps.length - 1 ? "閉じる" : "次へ";
+}
+
+// 遊び方ボタンクリックでモダールを開く
+tutorialBtn.addEventListener("click", () => {
+    currentStep = 0;
+    showStep();
+    tutorialModal.classList.add("show");
+});
+
+// 次へボタン・閉じるボタンの制御
+tutorialNextBtn.addEventListener("click", () => {
+    currentStep++;
+    if (currentStep < tutorialSteps.length) {
+        showStep();
+    } else {
+        tutorialModal.classList.remove("show");
+        // アニメーション完了後に非表示にする（CSSのtransitionに合わせる）
+        setTimeout(() => {
+            if(!tutorialModal.classList.contains("show")) {
+                tutorialModal.style.display = "none";
+            }
+        }, 300);
+    }
+});
+
+// モーダルの表示切り替えをスムーズにするための補助設定
+tutorialBtn.addEventListener("click", () => {
+    tutorialModal.style.display = "flex";
+    // ほんの少し遅らせることでCSSアニメーションを確実にトリガーさせる
+    setTimeout(() => tutorialModal.classList.add("show"), 10);
+});
+
 
 updateStatus();
 render(false);

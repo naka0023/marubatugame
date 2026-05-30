@@ -57,9 +57,15 @@ h1{
 /* =====================
    BUTTON
 ===================== */
+.btn-container {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
 button{
     display:block;
-    margin:0 auto 10px;
     padding:12px 20px;
     font-size:18px;
     border:none;
@@ -67,6 +73,10 @@ button{
     background:#43a047;
     color:#fff;
     cursor:pointer;
+}
+
+#tutorialBtn {
+    background: #0284c7;
 }
 
 /* =====================
@@ -114,6 +124,7 @@ button{
     align-items:center;
     justify-content:center;
     font-size:34px;
+    transition: box-shadow 0.3s, border 0.3s;
 }
 
 .left{
@@ -137,12 +148,50 @@ button{
     background:#fff3b0;
 }
 
+/* チュートリアル用のターゲットハイライト */
+@keyframes glow {
+    0% { box-shadow: 0 0 5px #3b82f6; border: 3px solid #3b82f6; }
+    50% { box-shadow: 0 0 20px #3b82f6; border: 3px solid #3b82f6; }
+    100% { box-shadow: 0 0 5px #3b82f6; border: 3px solid #3b82f6; }
+}
+.box.highlight {
+    animation: glow 1.2s infinite;
+    z-index: 10;
+}
+
 .fruit{
     position:absolute;
     left:50%;
     transform:translateX(-50%);
     font-size:50px;
     user-select:none;
+}
+
+/* =====================
+   TUTORIAL BANNER
+===================== */
+.tutorial-banner{
+    position:absolute;
+    top:20px;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,.8);
+    color:#fff;
+    padding:10px 20px;
+    border-radius:20px;
+    font-size:16px;
+    font-weight:bold;
+    text-align:center;
+    z-index:100;
+    pointer-events:none;
+    display:none;
+    white-space:nowrap;
+    box-shadow:0 4px 12px rgba(0,0,0,.2);
+    transition: background 0.3s;
+}
+
+.tutorial-banner.show{
+    display:block;
 }
 
 /* =====================
@@ -291,9 +340,10 @@ button{
     </div>
 </div>
 
-<button id="startBtn">
-    開始
-</button>
+<div class="btn-container">
+    <button id="startBtn">開始</button>
+    <button id="tutorialBtn">チュートリアル</button>
+</div>
 
 <div class="game" id="game">
 
@@ -315,7 +365,6 @@ button{
         🍌
     </div>
 
-    <!-- GAME OVER -->
     <div class="game-over" id="gameOver">
 
         <div class="game-over-card">
@@ -380,10 +429,28 @@ let spawn = null;
 let loopId = null;
 let difficultyTimer = null;
 
+/* チュートリアル用の状態管理 */
+let isTutorial = false;
+let tutorialStep = 0;
+const tutorialFruits = [
+    { emoji: "🍓", dir: "left", msg: "🔴赤い線に届く前に！🍓は【左】へ" },
+    { emoji: "🍈", dir: "right", msg: "🔴赤い線に届く前に！🍈は【右】へ" },
+    { emoji: "🍌", dir: "down", msg: "🔴赤い線に届く前に！🍌は【下】へ" }
+];
+
+// チュートリアル表示用の要素を動的に生成
+const tutorialBanner = document.createElement("div");
+tutorialBanner.className = "tutorial-banner";
+game.appendChild(tutorialBanner);
+
 /* =====================
    START
 ===================== */
 function start(){
+
+    isTutorial = false;
+    tutorialBanner.classList.remove("show");
+    document.querySelectorAll('.box').forEach(b => b.classList.remove('highlight'));
 
     clearInterval(spawn);
     clearInterval(
@@ -446,6 +513,73 @@ function start(){
         requestAnimationFrame(
             loop
         );
+}
+
+/* =====================
+   TUTORIAL START
+===================== */
+function startTutorial(){
+    clearInterval(spawn);
+    clearInterval(difficultyTimer);
+    cancelAnimationFrame(loopId);
+
+    document.querySelectorAll(".fruit").forEach(e=>e.remove());
+    document.querySelectorAll('.box').forEach(b => b.classList.remove('highlight'));
+
+    list = [];
+    score = 0;
+    playing = true;
+    isTutorial = true;
+    tutorialStep = 0;
+
+    document.getElementById("gameOver").classList.remove("show");
+
+    update();
+    nextTutorialStep();
+
+    loopId = requestAnimationFrame(loop);
+}
+
+/* =====================
+   TUTORIAL STEP ADVANCE
+===================== */
+function nextTutorialStep(){
+    document.querySelectorAll('.box').forEach(b => b.classList.remove('highlight'));
+
+    // 全ステップ完了したら本番開始へ
+    if(tutorialStep >= tutorialFruits.length){
+        tutorialBanner.textContent = "🎉 クリア！ゲームを開始します！";
+        tutorialBanner.style.background = "#16a34a";
+        setTimeout(()=>{
+            tutorialBanner.classList.remove("show");
+            start();
+        },1500);
+        return;
+    }
+
+    const stepData = tutorialFruits[tutorialStep];
+    tutorialBanner.textContent = stepData.msg;
+    tutorialBanner.style.background = "rgba(0, 0, 0, .8)";
+    tutorialBanner.classList.add("show");
+
+    // 対応するターゲットの箱をハイライト
+    const targetBoxSelector = stepData.dir === "down" ? ".bottom" : stepData.dir === "left" ? ".left" : ".right";
+    const box = document.querySelector(targetBoxSelector);
+    if(box) box.classList.add("highlight");
+
+    // 指定のフルーツを生成
+    const el = document.createElement("div");
+    el.className = "fruit";
+    el.textContent = stepData.emoji;
+    el.style.top = "-80px";
+    game.appendChild(el);
+
+    list.push({
+        el,
+        y:-80,
+        dir:stepData.dir,
+        fall:false
+    });
 }
 
 /* =====================
@@ -542,62 +676,71 @@ function loop(){
         if(f.fall)
             continue;
 
-        f.y += speed;
+        if (isTutorial) {
+            // 赤い線（50%の位置）のすぐ手前（42%の位置）でフルーツを静止させる
+            const stopY = game.clientHeight * 0.42;
+            if (f.y < stopY) {
+                f.y += speed;
+                f.el.style.top = f.y + "px";
+            }
+        } else {
+            f.y += speed;
 
-        f.el.style.top =
-            f.y + "px";
+            f.el.style.top =
+                f.y + "px";
 
-        if(
-            f.y > deadline
-        ){
+            if(
+                f.y > deadline
+            ){
 
-            f.fall = true;
+                f.fall = true;
 
-            const fr =
-                f.el
-                .getBoundingClientRect();
+                const fr =
+                    f.el
+                    .getBoundingClientRect();
 
-            const tr =
-                trash
-                .getBoundingClientRect();
+                const tr =
+                    trash
+                    .getBoundingClientRect();
 
-            const dx =
-                (
-                    tr.left +
-                    tr.width/2
-                )
-                -
-                (
-                    fr.left +
-                    fr.width/2
-                );
+                const dx =
+                    (
+                        tr.left +
+                        tr.width/2
+                    )
+                    -
+                    (
+                        fr.left +
+                        fr.width/2
+                    );
 
-            const dy =
-                (
-                    tr.top +
-                    tr.height/2
-                )
-                -
-                (
-                    fr.top +
-                    fr.height/2
-                );
+                const dy =
+                    (
+                        tr.top +
+                        tr.height/2
+                    )
+                    -
+                    (
+                        fr.top +
+                        fr.height/2
+                    );
 
-            f.el.style.transition =
-                "0.5s";
+                f.el.style.transition =
+                    "0.5s";
 
-            f.el.style.transform =
-                `translate(${dx}px,${dy}px) scale(0.4)`;
+                f.el.style.transform =
+                    `translate(${dx}px,${dy}px) scale(0.4)`;
 
-            f.el.style.opacity =
-                "0";
+                f.el.style.opacity =
+                    "0";
 
-            setTimeout(()=>{
-                f.el.remove();
-            },500);
+                setTimeout(()=>{
+                    f.el.remove();
+                },500);
 
-            finish();
-            return;
+                finish();
+                return;
+            }
         }
     }
 
@@ -655,11 +798,25 @@ function move(dir){
     const f =
         list[0];
 
+    if (isTutorial) {
+        // チュートリアル中でスワイプ方向を間違えたら、バナーを赤くして入力を無視する
+        if (f.dir !== dir) {
+            tutorialBanner.style.background = "#dc2626";
+            setTimeout(() => {
+                if(isTutorial) tutorialBanner.style.background = "rgba(0, 0, 0, .8)";
+            }, 400);
+            return;
+        }
+        document.querySelectorAll('.box').forEach(b => b.classList.remove('highlight'));
+    }
+
     if(
         f.dir === dir
     ){
 
-        score++;
+        if (!isTutorial) {
+            score++;
+        }
 
         const rect =
             f.el
@@ -677,7 +834,7 @@ function move(dir){
             rect.top
             - gameRect.top,
 
-            score
+            isTutorial ? "Good!" : score
         );
 
         const box =
@@ -734,7 +891,12 @@ function move(dir){
 
         list.shift();
 
-        update();
+        if (isTutorial) {
+            tutorialStep++;
+            setTimeout(nextTutorialStep, 600);
+        } else {
+            update();
+        }
     }
 }
 
@@ -811,6 +973,13 @@ document
     )
     .onclick =
     start;
+
+document
+    .getElementById(
+        "tutorialBtn"
+    )
+    .onclick =
+    startTutorial;
 </script>
 
 </body>
