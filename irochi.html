@@ -273,6 +273,18 @@ button:active{
     }
 }
 
+/* 👇 【新規追加】チュートリアル中のスマホ最適化スタイル */
+body.tutorial-mode h1 {
+    display: none; /* タイトルを非表示にして縦スペースを確保 */
+}
+body.tutorial-mode .card {
+    width: min(75vw, 320px); /* カードを一回り小さくしてボタンを上に押し上げる */
+}
+body.tutorial-mode #app {
+    justify-content: center;
+    gap: 12px;
+}
+
 @media(max-width:480px){
 
     h1{
@@ -577,6 +589,7 @@ function startTutorial() {
     tutorialStep = 1;
     overlay.style.display = "none";
     tutorialBox.style.display = "block";
+    document.body.classList.add("tutorial-mode"); // 💡チュートリアル用クラスを追加
     
     // 表示のマスク
     timeEl.textContent = "30";
@@ -646,6 +659,7 @@ function finishTutorial() {
     tutorialBox.style.display = "none";
     irochiBtn.classList.remove("pulse");
     safeBtn.classList.remove("pulse");
+    document.body.classList.remove("tutorial-mode"); // 💡チュートリアル用クラスを削除
     
     overlay.innerHTML = `
         <div class="panel">
