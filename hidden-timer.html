@@ -47,6 +47,81 @@ body{
     backdrop-filter:blur(10px);
 
     text-align:center;
+    position: relative;
+}
+
+/* チュートリアル確認ボタン */
+.btn-rule{
+    width: auto;
+    height: auto;
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.1);
+    margin-bottom: 10px;
+    display: inline-block;
+}
+
+.btn-rule:hover:not(:disabled){
+    background: rgba(255,255,255,0.2);
+}
+
+/* チュートリアルモーダル */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: #1f2937;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 30px;
+    border-radius: 24px;
+    max-width: 420px;
+    width: 90%;
+    text-align: left;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    text-align: center;
+    font-size: 24px;
+    color: #a78bfa;
+}
+
+.modal-content ol {
+    padding-left: 20px;
+    line-height: 1.6;
+}
+
+.modal-content li {
+    margin-bottom: 12px;
+}
+
+.modal-close-btn {
+    width: 100%;
+    height: 54px;
+    font-size: 20px;
+    margin-top: 20px;
+    background: linear-gradient(135deg, #8b5cf6, #2563eb);
 }
 
 h1{
@@ -157,7 +232,7 @@ button{
       );
 }
 
-.btn-start:hover{
+.btn-start:hover:not(:disabled){
     transform:translateY(-3px);
 
     box-shadow:
@@ -175,7 +250,7 @@ button{
       );
 }
 
-.btn-stop:hover{
+.btn-stop:hover:not(:disabled){
     transform:translateY(-3px);
 
     box-shadow:
@@ -183,12 +258,12 @@ button{
       rgba(239,68,68,.35);
 }
 
-button:active{
+button:active:not(:disabled){
     transform:scale(.96);
 }
 
 button:disabled{
-    opacity:.5;
+    opacity:.3;
     cursor:not-allowed;
 }
 
@@ -277,7 +352,25 @@ tr:nth-child(even){
 
 <body>
 
+<div class="modal-overlay show" id="tutorialModal">
+    <div class="modal-content">
+        <h2>📖 遊び方ガイド</h2>
+        <p>このゲームは2人対戦用の<strong>「体内時計チキンレース」</strong>です！</p>
+        <ol>
+            <li><strong>START</strong>を押すと、画面のタイマーが隠れた状態でカウントが始まります。</li>
+            <li>自分の感覚を信じて<strong>STOP</strong>を押し、次のプレイヤーに交代します。</li>
+            <li>2人の合計時間が<strong>10秒</strong>を超えた瞬間に、その時タイマーを動かしていたプレイヤーの<strong>負け</strong>となります！</li>
+        </ol>
+        <p style="font-size: 14px; opacity: 0.8; text-align: center; margin-top: 20px;">
+            ⏱ ギリギリを攻めて相手にターンを回そう！
+        </p>
+        <button class="modal-close-btn" id="closeModalBtn">ゲーム開始！</button>
+    </div>
+</div>
+
 <div class="game-card">
+
+    <button id="openModalBtn" class="btn-rule">❓ ルールを見る</button>
 
     <h1>⏱ 隠しタイマー対戦</h1>
 
@@ -304,7 +397,6 @@ tr:nth-child(even){
         プレイヤー1のターン
     </div>
 
-    <!-- 履歴 -->
     <div
       class="history"
       id="history">
@@ -364,9 +456,37 @@ const historyBody =
 document.getElementById(
 "historyBody");
 
+/* チュートリアル用の要素 */
+const tutorialModal = 
+document.getElementById(
+"tutorialModal");
+
+const closeModalBtn = 
+document.getElementById(
+"closeModalBtn");
+
+const openModalBtn = 
+document.getElementById(
+"openModalBtn");
+
+
 /* 目標秒数表示 */
 timer.textContent =
 `${LIMIT_SECONDS}秒`;
+
+/* チュートリアル制御 */
+closeModalBtn.addEventListener(
+"click",()=>{
+    tutorialModal.classList
+      .remove("show");
+});
+
+openModalBtn.addEventListener(
+"click",()=>{
+    tutorialModal.classList
+      .add("show");
+});
+
 
 /* 現在時間 */
 function currentTime(){
@@ -413,7 +533,7 @@ function addLog(
 function renderHistory(){
 
     historyBody.innerHTML =
-      "";
+      ""
 
     logs.forEach(log=>{
 
@@ -468,6 +588,10 @@ function lose(){
     btn.disabled =
       true;
 
+    /* 終了後はルールボタンを再度有効化 */
+    openModalBtn.disabled =
+      false;
+
     renderHistory();
 }
 
@@ -504,6 +628,10 @@ btn.addEventListener(
 
         status.textContent =
           `プレイヤー${currentPlayer} 計測中`;
+
+        /* ゲーム中はルールボタンを無効化 */
+        openModalBtn.disabled =
+          true;
 
         /* 超えた瞬間監視 */
         timerInterval =
@@ -555,6 +683,10 @@ btn.addEventListener(
       .add(
         "btn-start"
       );
+
+    /* 交代時（停止中）はルールボタンを有効化 */
+    openModalBtn.disabled =
+      false;
 
     /* プレイヤー交代 */
     currentPlayer =
