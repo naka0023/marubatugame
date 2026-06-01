@@ -63,6 +63,14 @@
             color: #ffcc00;
             text-shadow: 0 0 8px #ffcc00;
         }
+        #hud-lives {
+            position: absolute;
+            top: 45px;
+            right: 20px;
+            font-size: 12px;
+            color: #ff0055;
+            text-shadow: 0 0 8px #ff0055;
+        }
         
         /* オーバーレイ */
         .overlay {
@@ -143,6 +151,7 @@
             <div id="hud-score">TIME: 0.00s</div>
             <div id="hud-high">BEST: 0.00s</div>
             <div id="hud-level">DENSITY: LV.1</div>
+            <div id="hud-lives">LIVES: ❤️ × 3</div>
         </div>
 
         <canvas id="gameCanvas"></canvas>
@@ -157,7 +166,11 @@
                 ⚠️ <b>30s〜</b>: <b>カオス化。</b>シャッターの奥にプロペラが重なり、メテオが同時に飛来！<br>
                 💀 <b>60s〜</b>: 四方八方トラップだらけの弾幕地獄。
             </div>
-            <button class="btn" onclick="startGame()">START RUN</button>
+            
+            <div style="display: flex; gap: 15px; width: 100%; justify-content: center;">
+                <button id="btn-normal" class="btn" style="font-size: 14px; padding: 12px 20px; flex: 1; line-height: 1.4;" onclick="startGame('NORMAL')">NORMAL RUN<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">LIFE: 3 (NO LIMIT)</span></button>
+                <button id="btn-sudden" class="btn" style="font-size: 14px; padding: 12px 20px; flex: 1; line-height: 1.4; border-color: #ff0055; color: #ff0055; box-shadow: 0 0 15px rgba(255, 0, 85, 0.2); text-shadow: 0 0 10px #ff0055;" onclick="startGame('SUDDEN')">SUDDEN RUN<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">LIFE: 1</span></button>
+            </div>
         </div>
 
         <div id="screen-gameover" class="overlay hidden">
@@ -165,7 +178,11 @@
             <div class="subtitle" id="fail-reason">~ REASON ~</div>
             <div class="score-display" id="res-score">SCORE: 0.00s</div>
             <div class="score-display" id="res-high" style="font-size: 16px; color: #aaa;">BEST: 0.00s</div>
-            <button class="btn" onclick="startGame()">TRY AGAIN</button>
+            
+            <div style="display: flex; gap: 15px; width: 100%; justify-content: center; margin-top: 15px;">
+                <button class="btn" style="font-size: 15px; padding: 12px 25px; flex: 1;" onclick="startGame()">TRY AGAIN</button>
+                <button class="btn" style="font-size: 15px; padding: 12px 25px; flex: 1; border-color: #888; color: #888; text-shadow: 0 0 10px #888; box-shadow: 0 0 15px rgba(136,136,136,0.2);" onclick="backToTitle()">TITLE</button>
+            </div>
         </div>
     </div>
 
@@ -177,6 +194,7 @@
         const hudScore = document.getElementById('hud-score');
         const hudHigh = document.getElementById('hud-high');
         const hudLevel = document.getElementById('hud-level');
+        const hudLives = document.getElementById('hud-lives');
         const screenStart = document.getElementById('screen-start');
         const screenGameover = document.getElementById('screen-gameover');
         const failReasonText = document.getElementById('fail-reason');
@@ -187,11 +205,29 @@
         let cameraX = 0;
         let gameStartTime = 0;
         let survivalTime = 0;
-        let highScore = parseFloat(localStorage.getItem('neon_multimix_high')) || 0;
+
+        // モード別ハイスコア管理
+        let highScoreNormal = parseFloat(localStorage.getItem('neon_multimix_high_normal')) || 0;
+        let highScoreSudden = parseFloat(localStorage.getItem('neon_multimix_high_sudden')) || 0;
+
+        let gameMode = 'NORMAL'; 
+        let lastSelectedMode = 'NORMAL';
+        let lives = 3;
+        let isInvincible = false;
+        let invincibleUntil = 0;
+        let shakeEndTime = 0;
+
+        // 回復・演出用変数
+        let lastHeartSpawnTime = 0;
+        let particles = [];
+        let flashAlpha = 0;
+        let flashColorStr = '#00ff55';
+        let dyingEndTime = 0;
+        let pendingReason = '';
 
         // 自機（棒）
         let playerX = 0, playerY = 0;
-        const rodLength = 28; // 密度上昇に伴い、わずかに小さく調整
+        const rodLength = 28; 
 
         // 障害物
         let obstacles = [];
@@ -202,12 +238,22 @@
         let baseTouchX = 0, baseTouchY = 0;
         let basePlayerX = 0, basePlayerY = 0;
 
-        hudHigh.textContent = `BEST: ${highScore.toFixed(2)}s`;
+        // メニューボタンと最高スコアの初期化表示
+        function updateMenuButtons() {
+            document.getElementById('btn-normal').innerHTML = `NORMAL RUN<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">LIFE: 3 (NO LIMIT)<br>BEST: ${highScoreNormal.toFixed(2)}s</span>`;
+            document.getElementById('btn-sudden').innerHTML = `SUDDEN RUN<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">LIFE: 1<br>BEST: ${highScoreSudden.toFixed(2)}s</span>`;
+        }
+        function updateHighScoreDisplay() {
+            let currentBest = lastSelectedMode === 'NORMAL' ? highScoreNormal : highScoreSudden;
+            hudHigh.textContent = `BEST: ${currentBest.toFixed(2)}s`;
+        }
+        updateMenuButtons();
+        updateHighScoreDisplay();
 
         function resizeCanvas() {
             canvas.width = container.clientWidth;
             canvas.height = container.clientHeight;
-            if (gameState !== 'PLAYING') {
+            if (gameState !== 'PLAYING' && gameState !== 'DYING') {
                 playerX = canvas.width * 0.25;
                 playerY = canvas.height * 0.5;
             }
@@ -229,14 +275,14 @@
             let midY = h * 0.5 + Math.sin(x * 0.002) * amp1 + Math.cos(x * 0.001) * amp2;
 
             const startWidth = h * 0.52;
-            const minWidth = rodLength * 2.3; // 複数重なるため少し広めのマージン
+            const minWidth = rodLength * 2.3; 
             const currentWidth = startWidth - (startWidth - minWidth) * difficulty;
 
             return { top: midY - currentWidth / 2, bottom: midY + currentWidth / 2 };
         }
 
         // --------------------------------------------------
-        // ★新・多層混在型 トラップ生成アルゴリズム
+        // トラップ生成アルゴリズム
         // --------------------------------------------------
         function generateGimmickUnit(targetX, chosenType) {
             if (chosenType === 'shutter') {
@@ -264,39 +310,45 @@
         }
 
         function spawnObstacleCluster() {
-            // 時間ごとの同時出現数（密度レベル）の設定
-            let maxSimultaneous = 1; // 15秒未満
+            let maxSimultaneous = 1; 
             let lvText = "LV.1: SINGLE";
 
             if (survivalTime >= 60) {
-                maxSimultaneous = 4; // 60秒以上: 絶望（4種全盛り）
+                maxSimultaneous = 4; 
                 lvText = "LV.4: APOCALYPSE";
             } else if (survivalTime >= 30) {
-                maxSimultaneous = 3; // 30秒以上: カオス（3種類同時）
+                maxSimultaneous = 3; 
                 lvText = "LV.3: CHAOTIC";
             } else if (survivalTime >= 15) {
-                maxSimultaneous = 2; // 15秒以上: 危険（2種類同時）
+                maxSimultaneous = 2; 
                 lvText = "LV.2: DUAL-MIX";
             }
             hudLevel.textContent = `DENSITY: ${lvText}`;
 
-            // 利用可能な全ギミック
+            // NORMALモード限定：10秒ごとにライフ回復ハートを設置
+            if (gameMode === 'NORMAL' && survivalTime - lastHeartSpawnTime >= 10) {
+                obstacles.push({
+                    id: Math.random(),
+                    x: nextSpawnX,
+                    y: null, 
+                    type: 'heart',
+                    param: 0,
+                    color: '#00ff55'
+                });
+                lastHeartSpawnTime = survivalTime;
+                nextSpawnX += 180; 
+            }
+
             let availableTypes = ['shutter', 'propeller', 'bouncer', 'meteor'];
-            
-            // ランダムにシャッフルして、現在の最大出現数だけギミックを選出
             availableTypes.sort(() => Math.random() - 0.5);
             let activeCount = Math.min(maxSimultaneous, availableTypes.length);
 
-            // 選ばれた複数のギミックを「同じX座標付近」に同時に発生させる！
             for (let i = 0; i < activeCount; i++) {
-                // まったく同じXだと重なりすぎるので、数px〜数十pxだけわざと前後させて嫌らしさを出す
                 let microOffset = (i * (40 + Math.random() * 40)) - 30;
                 let unit = generateGimmickUnit(nextSpawnX + microOffset, availableTypes[i]);
                 if (unit) obstacles.push(unit);
             }
 
-            // 次の塊（クラスター）が出現するまでの距離
-            // 難易度が上がるほど、クラスター間の距離自体も短くなり、切れ目がなくなっていく
             const difficulty = Math.min(1.0, survivalTime / 100);
             const baseInterval = 340 - (difficulty * 120); 
             nextSpawnX += baseInterval;
@@ -323,19 +375,107 @@
         }
 
         // --------------------------------------------------
+        // 特殊エフェクト生成（パーティクル）
+        // --------------------------------------------------
+        function createExplosionParticles(x, y) {
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x: x, y: y + (Math.random() - 0.5) * rodLength,
+                    vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
+                    length: 6 + Math.random() * 10, angle: Math.random() * Math.PI * 2,
+                    vAngle: (Math.random() - 0.5) * 0.3, color: '#00ffcc', alpha: 1,
+                    decay: 0.01 + Math.random() * 0.01, type: 'line'
+                });
+            }
+            for (let i = 0; i < 40; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = 2 + Math.random() * 7;
+                particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                    size: 2 + Math.random() * 3, color: Math.random() > 0.4 ? '#00ffcc' : '#ff0055',
+                    alpha: 1, decay: 0.01 + Math.random() * 0.015, type: 'spark'
+                });
+            }
+        }
+
+        function createRecoveryParticles(x, y) {
+            for (let i = 0; i < 25; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = 1.5 + Math.random() * 4;
+                particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                    size: 1.5 + Math.random() * 2.5, color: '#00ff55', alpha: 1,
+                    decay: 0.02 + Math.random() * 0.02, type: 'spark'
+                });
+            }
+        }
+
+        // --------------------------------------------------
         // コアシステム
         // --------------------------------------------------
-        function startGame() {
+        function updateLivesHUD() {
+            if (gameMode === 'SUDDEN') {
+                hudLives.textContent = 'LIFE: 💀 SUDDEN';
+            } else {
+                hudLives.textContent = `LIVES: ❤️ × ${lives}`;
+            }
+        }
+
+        function startGame(mode) {
+            if (mode) lastSelectedMode = mode;
+            gameMode = lastSelectedMode;
+
             cameraX = 0; survivalTime = 0;
             playerX = canvas.width * 0.25; playerY = canvas.height * 0.5;
             obstacles = [];
+            particles = [];
             nextSpawnX = cameraX + canvas.width + 60; 
             gameState = 'PLAYING';
             gameStartTime = performance.now();
 
+            lives = gameMode === 'NORMAL' ? 3 : 1;
+            isInvincible = false;
+            invincibleUntil = 0;
+            shakeEndTime = 0;
+            lastHeartSpawnTime = 0;
+            flashAlpha = 0;
+
+            updateLivesHUD();
+            updateHighScoreDisplay();
+
             screenStart.classList.add('hidden');
             screenGameover.classList.add('hidden');
             resHigh.classList.remove('high-shout');
+        }
+
+        function handleHit(reason) {
+            shakeEndTime = performance.now() + 400;
+
+            if (gameMode === 'SUDDEN') {
+                startDyingSequence(reason);
+            } else {
+                lives--;
+                updateLivesHUD();
+                if (lives <= 0) {
+                    startDyingSequence(reason);
+                } else {
+                    isInvincible = true;
+                    invincibleUntil = performance.now() + 2000;
+                    flashAlpha = 0.25;
+                    flashColorStr = 'rgba(255, 0, 85, 0.4)';
+                }
+            }
+        }
+
+        function startDyingSequence(reason) {
+            gameState = 'DYING';
+            pendingReason = reason;
+            dyingEndTime = performance.now() + 1000;
+            createExplosionParticles(playerX, playerY);
+            flashAlpha = 0.5;
+            flashColorStr = 'rgba(255, 0, 85, 0.6)';
         }
 
         function gameOver(reason) {
@@ -343,20 +483,38 @@
             failReasonText.textContent = `~ ${reason} ~`;
 
             let isNewHigh = false;
-            if (survivalTime > highScore) {
-                highScore = survivalTime;
-                localStorage.setItem('neon_multimix_high', highScore.toString());
-                hudHigh.textContent = `BEST: ${highScore.toFixed(2)}s`;
-                isNewHigh = true;
+            if (gameMode === 'NORMAL') {
+                if (survivalTime > highScoreNormal) {
+                    highScoreNormal = survivalTime;
+                    localStorage.setItem('neon_multimix_high_normal', highScoreNormal.toString());
+                    isNewHigh = true;
+                }
+            } else {
+                if (survivalTime > highScoreSudden) {
+                    highScoreSudden = survivalTime;
+                    localStorage.setItem('neon_multimix_high_sudden', highScoreSudden.toString());
+                    isNewHigh = true;
+                }
             }
 
             resScore.textContent = `SCORE: ${survivalTime.toFixed(2)}s`;
+            let currentBest = gameMode === 'NORMAL' ? highScoreNormal : highScoreSudden;
             if (isNewHigh) {
                 resHigh.textContent = `NEW BEST!! 👑`; resHigh.classList.add('high-shout');
             } else {
-                resHigh.textContent = `BEST: ${highScore.toFixed(2)}s`;
+                resHigh.textContent = `BEST: ${currentBest.toFixed(2)}s`;
             }
+            
+            updateHighScoreDisplay();
             screenGameover.classList.remove('hidden');
+        }
+
+        function backToTitle() {
+            gameState = 'INIT';
+            screenGameover.classList.add('hidden');
+            screenStart.classList.remove('hidden');
+            updateMenuButtons();
+            updateHighScoreDisplay();
         }
 
         // 相対スライド操作
@@ -382,12 +540,9 @@
         window.addEventListener('mouseup', () => isTouching = false);
 
         // --------------------------------------------------
-        // メイン描画・演算
+        // メイン描画・演算ループ
         // --------------------------------------------------
         function update(timestamp) {
-            ctx.fillStyle = '#030308';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
             const difficulty = Math.min(1.0, survivalTime / 100);
             const scrollSpeed = 3.2 + (2.5 * difficulty);
 
@@ -397,7 +552,28 @@
                 cameraX += scrollSpeed;
 
                 if (cameraX + canvas.width > nextSpawnX) spawnObstacleCluster();
+            } else if (gameState === 'DYING') {
+                if (timestamp > dyingEndTime) {
+                    gameOver(pendingReason);
+                }
             }
+
+            if (isInvincible && timestamp > invincibleUntil) {
+                isInvincible = false;
+            }
+
+            let shakeX = 0, shakeY = 0;
+            if (timestamp < shakeEndTime) {
+                const intensity = ((shakeEndTime - timestamp) / 400) * 12; 
+                shakeX = (Math.random() - 0.5) * intensity;
+                shakeY = (Math.random() - 0.5) * intensity;
+            }
+
+            ctx.fillStyle = '#030308';
+            ctx.fillRect(-20, -20, canvas.width + 40, canvas.height + 40);
+
+            ctx.save();
+            ctx.translate(shakeX, shakeY);
 
             // 背景
             ctx.strokeStyle = 'rgba(255, 0, 120, 0.02)'; ctx.lineWidth = 1;
@@ -416,18 +592,18 @@
             ctx.beginPath(); ctx.moveTo(0, canvas.height); tunnelPoints.forEach((p, i) => ctx.lineTo(i * step, p.bottom)); ctx.lineTo(canvas.width, canvas.height); ctx.closePath(); ctx.fill();
             ctx.beginPath(); tunnelPoints.forEach((p, i) => ctx.lineTo(i * step, p.bottom)); ctx.stroke();
 
-            // 自機判定
             let rodTopY = playerY - (rodLength / 2);
             let rodBottomY = playerY + (rodLength / 2);
 
-            if (gameState === 'PLAYING') {
+            // 外壁判定
+            if (gameState === 'PLAYING' && !isInvincible) {
                 let currentTunnel = getTunnel(cameraX + playerX, survivalTime);
                 if (rodTopY <= currentTunnel.top || rodBottomY >= currentTunnel.bottom) {
-                    gameOver('外壁ネオンに衝突！');
+                    handleHit('外壁ネオンに衝突！');
                 }
             }
 
-            // --- 障害物複合演算 ---
+            // --- 障害物・アイテム演算 ---
             const speedFactor = 1.0 + (difficulty * 1.4);
 
             obstacles = obstacles.filter(obs => {
@@ -448,7 +624,6 @@
                     let safeGap = rodLength * 1.6; 
                     let openProgress = (Math.sin(obs.param) + 1) / 2;
                     let currentGap = safeGap + (tunnelHeight - safeGap) * (1 - openProgress);
-
                     let topBladeBottom = targetCenterY - (currentGap / 2);
                     let bottomBladeTop = targetCenterY + (currentGap / 2);
 
@@ -456,9 +631,9 @@
                     ctx.beginPath(); ctx.moveTo(screenX, tunnel.top); ctx.lineTo(screenX, topBladeBottom); ctx.stroke();
                     ctx.beginPath(); ctx.moveTo(screenX, tunnel.bottom); ctx.lineTo(screenX, bottomBladeTop); ctx.stroke();
 
-                    if (gameState === 'PLAYING' && Math.abs(playerX - screenX) < 5) {
+                    if (gameState === 'PLAYING' && !isInvincible && Math.abs(playerX - screenX) < 5) {
                         if (rodTopY <= topBladeBottom || rodBottomY >= bottomBladeTop) {
-                            gameOver('可変シャッターに圧潰！');
+                            handleHit('可変シャッターに圧潰！');
                         }
                     }
                 } 
@@ -474,8 +649,8 @@
                     ctx.beginPath(); ctx.arc(screenX, currentY, radius, 0, Math.PI * 2); ctx.fill();
                     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(screenX, currentY, radius * 0.4, 0, Math.PI * 2); ctx.fill();
 
-                    if (gameState === 'PLAYING' && checkLineCircle(playerX, rodTopY, rodBottomY, screenX, currentY, radius)) {
-                        gameOver('パルスバウンサーに激突！');
+                    if (gameState === 'PLAYING' && !isInvincible && checkLineCircle(playerX, rodTopY, rodBottomY, screenX, currentY, radius)) {
+                        handleHit('パルスバウンサーに激突！');
                     }
                 } 
                 // 3. プロペラ
@@ -484,38 +659,135 @@
                     let bladeLength = tunnelHeight * 0.34;
 
                     ctx.shadowColor = obs.color; ctx.strokeStyle = obs.color; ctx.lineWidth = 4;
+                    let isPropellerHit = false;
                     for (let i = 0; i < 3; i++) {
                         let bAngle = angle + (i * Math.PI * 2 / 3);
                         let bx = screenX + Math.cos(bAngle) * bladeLength;
                         let by = midY + Math.sin(bAngle) * bladeLength;
-
                         ctx.beginPath(); ctx.moveTo(screenX, midY); ctx.lineTo(bx, by); ctx.stroke();
 
-                        if (gameState === 'PLAYING' && checkLineLine(playerX, rodTopY, rodBottomY, screenX, midY, bx, by)) {
-                            gameOver('高速プロペラに接触！');
+                        if (gameState === 'PLAYING' && !isInvincible && checkLineLine(playerX, rodTopY, rodBottomY, screenX, midY, bx, by)) {
+                            isPropellerHit = true;
                         }
                     }
+                    if (isPropellerHit) handleHit('高速プロペラに接触！');
                     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(screenX, midY, 4, 0, Math.PI * 2); ctx.fill();
                 } 
-                // 4. メテオ（飛来弾）
+                // 4. メテオ
                 else if (obs.type === 'meteor') {
                     if (gameState === 'PLAYING') obs.x += obs.vx; 
-                    
                     ctx.shadowColor = obs.color; ctx.shadowBlur = 10; ctx.fillStyle = obs.color;
                     ctx.beginPath(); ctx.arc(screenX, obs.y, obs.radius, 0, Math.PI * 2); ctx.fill();
 
-                    if (gameState === 'PLAYING' && checkLineCircle(playerX, rodTopY, rodBottomY, screenX, obs.y, obs.radius)) {
-                        gameOver('飛来メテオに撃墜された！');
+                    if (gameState === 'PLAYING' && !isInvincible && checkLineCircle(playerX, rodTopY, rodBottomY, screenX, obs.y, obs.radius)) {
+                        handleHit('飛来メテオに撃墜された！');
+                    }
+                }
+                // 5. 回復ハート (NORMAL専用・【改良版】全方位・前後対応型マグネット)
+                else if (obs.type === 'heart') {
+                    if (obs.y === undefined || obs.y === null) {
+                        obs.y = midY;
+                    }
+
+                    // 機体とハートの画面上での2次元直線距離を算出
+                    let diffX = playerX - screenX;
+                    let diffY = playerY - obs.y;
+                    let distance = Math.sqrt(diffX * diffX + diffY * diffY);
+
+                    // 前後左右問わず、機体の周囲180px（磁界）に近づいた場合
+                    if (gameState === 'PLAYING' && distance < 180) {
+                        // ワールド座標ベースで機体へ吸い寄せる (X軸・Y軸両方を同時に補間)
+                        let playerWorldX = cameraX + playerX;
+                        obs.x += (playerWorldX - obs.x) * 0.24; // スクロールに逆らう、あるいは追いかける強烈な吸引
+                        obs.y += (playerY - obs.y) * 0.24;
+                        
+                        // 座標が動いたので画面描画・当たり判定用にscreenXを再同期
+                        screenX = obs.x - cameraX;
+                    } else {
+                        // 磁界の外にいる時は元の軌道（ベースライン上をふわふわ浮遊）
+                        let targetY = midY + Math.sin(timestamp * 0.005) * 15;
+                        obs.y += (targetY - obs.y) * 0.1;
+                    }
+                    let itemY = obs.y;
+
+                    ctx.shadowColor = obs.color; ctx.shadowBlur = 15; ctx.strokeStyle = obs.color; ctx.lineWidth = 3;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(screenX, itemY - 4);
+                    ctx.bezierCurveTo(screenX - 7, itemY - 12, screenX - 14, itemY - 5, screenX, itemY + 10);
+                    ctx.bezierCurveTo(screenX + 14, itemY - 5, screenX + 7, itemY - 12, screenX, itemY - 4);
+                    ctx.closePath();
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(0, 255, 85, 0.2)';
+                    ctx.fill();
+
+                    if (gameState === 'PLAYING' && checkLineCircle(playerX, rodTopY, rodBottomY, screenX, itemY, 14)) {
+                        lives++; 
+                        updateLivesHUD();
+                        createRecoveryParticles(screenX, itemY);
+                        flashAlpha = 0.35;
+                        flashColorStr = 'rgba(0, 255, 85, 0.4)';
+                        return false; 
                     }
                 }
 
                 return true;
             });
 
-            // 自機描画
-            ctx.shadowColor = '#00ffcc'; ctx.shadowBlur = 15; ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(playerX, rodTopY); ctx.lineTo(playerX, rodBottomY); ctx.stroke();
-            ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 5; ctx.beginPath(); ctx.arc(playerX, playerY, 3, 0, Math.PI * 2); ctx.fill();
+            // --- 自機描画 ---
+            if (gameState === 'PLAYING') {
+                let showPlayer = true;
+                if (isInvincible) {
+                    showPlayer = Math.floor(timestamp / 100) % 2 === 0;
+                }
+                if (showPlayer) {
+                    ctx.shadowColor = '#00ffcc'; ctx.shadowBlur = 15; 
+                    ctx.strokeStyle = isInvincible ? 'rgba(0, 255, 204, 0.4)' : '#00ffcc'; 
+                    ctx.lineWidth = 5; ctx.lineCap = 'round';
+                    ctx.beginPath(); ctx.moveTo(playerX, rodTopY); ctx.lineTo(playerX, rodBottomY); ctx.stroke();
+                    ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 5; ctx.beginPath(); ctx.arc(playerX, playerY, 3, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+
+            // --- パーティクル処理 ---
+            particles = particles.filter(p => {
+                p.x += p.vx; p.y += p.vy;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) return false;
+
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.shadowBlur = 10; ctx.shadowColor = p.color;
+                ctx.fillStyle = p.color; ctx.strokeStyle = p.color;
+
+                if (p.type === 'spark') {
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                } else if (p.type === 'line') {
+                    p.angle += p.vAngle;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    let x1 = p.x - Math.cos(p.angle) * p.length / 2;
+                    let y1 = p.y - Math.sin(p.angle) * p.length / 2;
+                    let x2 = p.x + Math.cos(p.angle) * p.length / 2;
+                    let y2 = p.y + Math.sin(p.angle) * p.length / 2;
+                    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+                }
+                ctx.restore();
+                return true;
+            });
+
+            ctx.restore();
+
+            // --- フラッシュエフェクト ---
+            if (flashAlpha > 0) {
+                ctx.save();
+                ctx.fillStyle = flashColorStr;
+                ctx.globalAlpha = flashAlpha;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
+                flashAlpha -= 0.02;
+            }
 
             requestAnimationFrame(update);
         }
