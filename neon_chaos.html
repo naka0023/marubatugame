@@ -168,8 +168,8 @@
             </div>
             
             <div style="display: flex; gap: 15px; width: 100%; justify-content: center;">
-                <button id="btn-normal" class="btn" style="font-size: 14px; padding: 12px 20px; flex: 1; line-height: 1.4;" onclick="startGame('NORMAL')">NORMAL RUN<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">LIFE: 3 (NO LIMIT)</span></button>
-                <button id="btn-sudden" class="btn" style="font-size: 14px; padding: 12px 20px; flex: 1; line-height: 1.4; border-color: #ff0055; color: #ff0055; box-shadow: 0 0 15px rgba(255, 0, 85, 0.2); text-shadow: 0 0 10px #ff0055;" onclick="startGame('SUDDEN')">SUDDEN RUN<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">LIFE: 1</span></button>
+                <button id="btn-normal" class="btn" style="font-size: 14px; padding: 12px 20px; flex: 1; line-height: 1.4;" onclick="handleStartButton('NORMAL')">NORMAL RUN<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">LIFE: 3 (NO LIMIT)</span></button>
+                <button id="btn-sudden" class="btn" style="font-size: 14px; padding: 12px 20px; flex: 1; line-height: 1.4; border-color: #ff0055; color: #ff0055; box-shadow: 0 0 15px rgba(255, 0, 85, 0.2); text-shadow: 0 0 10px #ff0055;" onclick="handleStartButton('SUDDEN')">SUDDEN RUN<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">LIFE: 1</span></button>
             </div>
         </div>
 
@@ -180,8 +180,8 @@
             <div class="score-display" id="res-high" style="font-size: 16px; color: #aaa;">BEST: 0.00s</div>
             
             <div style="display: flex; gap: 15px; width: 100%; justify-content: center; margin-top: 15px;">
-                <button class="btn" style="font-size: 15px; padding: 12px 25px; flex: 1;" onclick="startGame()">TRY AGAIN</button>
-                <button class="btn" style="font-size: 15px; padding: 12px 25px; flex: 1; border-color: #888; color: #888; text-shadow: 0 0 10px #888; box-shadow: 0 0 15px rgba(136,136,136,0.2);" onclick="backToTitle()">TITLE</button>
+                <button class="btn" style="font-size: 15px; padding: 12px 25px; flex: 1;" onclick="handleStartButton()">TRY AGAIN</button>
+                <button class="btn" style="font-size: 15px; padding: 12px 25px; flex: 1; border-color: #888; color: #888; text-shadow: 0 0 10px #888; box-shadow: 0 0 15px rgba(136,136,136,0.2);" onclick="handleBackButton()">TITLE</button>
             </div>
         </div>
     </div>
@@ -238,7 +238,231 @@
         let baseTouchX = 0, baseTouchY = 0;
         let basePlayerX = 0, basePlayerY = 0;
 
+        // --------------------------------------------------
+        // 🎵 オーディオシステム（Web Audio API シンセサイザー）
+        // --------------------------------------------------
+        let audioCtx = null;
+        let bgmTimer = null;
+        let bgmStep = 0;
+        let nextNoteTime = 0;
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            startBGM();
+        }
+
+        function startBGM() {
+            if (bgmTimer) clearTimeout(bgmTimer);
+            nextNoteTime = audioCtx.currentTime;
+            bgmStep = 0;
+
+            // テクノ風のベースライン (Aマイナーコード進行)
+            const baseSeq = [55, 55, 65, 55, 73, 55, 65, 82, 55, 55, 98, 98, 82, 73, 65, 55];
+            // 後半のカオス用裏メロディ（30秒以降）
+            const leadSeq = [220, 0, 261, 0, 293, 329, 392, 0, 329, 0, 293, 0, 261, 220, 0, 0];
+
+            function scheduler() {
+                while (nextNoteTime < audioCtx.currentTime + 0.1) {
+                    let stepDuration = 0.14; 
+
+                    if (gameState === 'PLAYING') {
+                        // 【ギミック】時間経過（難易度）に合わせてBGMがどんどん加速！
+                        let difficulty = Math.min(1.0, survivalTime / 100);
+                        stepDuration = 0.14 - (difficulty * 0.05); 
+
+                        // ベース音のスケジューリング
+                        let freq = baseSeq[bgmStep % baseSeq.length];
+                        if (freq > 0) {
+                            let osc = audioCtx.createOscillator();
+                            let gain = audioCtx.createGain();
+                            osc.type = 'sawtooth'; // ギザギザしたサイバーな音
+                            osc.frequency.setValueAtTime(freq, nextNoteTime);
+                            
+                            gain.gain.setValueAtTime(0.04, nextNoteTime);
+                            gain.gain.exponentialRampToValueAtTime(0.001, nextNoteTime + stepDuration * 0.9);
+                            
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.start(nextNoteTime);
+                            osc.stop(nextNoteTime + stepDuration);
+                        }
+
+                        // 【ギミック】25秒以上生き残ると焦燥感を煽る高速ハイピッチメロディが重なる
+                        if (survivalTime >= 25) {
+                            let leadFreq = leadSeq[bgmStep % leadSeq.length];
+                            if (leadFreq > 0) {
+                                let oscL = audioCtx.createOscillator();
+                                let gainL = audioCtx.createGain();
+                                oscL.type = 'square'; // ピコピコした矩形波
+                                oscL.frequency.setValueAtTime(leadFreq * 1.5, nextNoteTime);
+                                
+                                gainL.gain.setValueAtTime(0.015, nextNoteTime);
+                                gainL.gain.exponentialRampToValueAtTime(0.001, nextNoteTime + stepDuration * 1.5);
+                                
+                                oscL.connect(gainL);
+                                gainL.connect(audioCtx.destination);
+                                oscL.start(nextNoteTime);
+                                oscL.stop(nextNoteTime + stepDuration * 1.5);
+                            }
+                        }
+                    } else {
+                        // メニュー・ゲームオーバー画面：ゆったりしたミステリアスな旋律
+                        stepDuration = 0.25;
+                        let titleSeq = [110, 0, 130, 0, 123, 0, 98, 0];
+                        let freq = titleSeq[bgmStep % titleSeq.length];
+                        if (freq > 0) {
+                            let osc = audioCtx.createOscillator();
+                            let gain = audioCtx.createGain();
+                            osc.type = 'triangle';
+                            osc.frequency.setValueAtTime(freq, nextNoteTime);
+                            
+                            gain.gain.setValueAtTime(0.06, nextNoteTime);
+                            gain.gain.exponentialRampToValueAtTime(0.001, nextNoteTime + 0.2);
+                            
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.start(nextNoteTime);
+                            osc.stop(nextNoteTime + 0.2);
+                        }
+                    }
+                    nextNoteTime += stepDuration;
+                    bgmStep++;
+                }
+                bgmTimer = setTimeout(scheduler, 25);
+            }
+            scheduler();
+        }
+
+        function playSE(type) {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'select') {
+                // ボタンクリック：小気味よい高音
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(1000, now + 0.06);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.06);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.06);
+            } 
+            else if (type === 'hit') {
+                // 被弾（ライフ減少）：鈍い衝撃音
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(160, now);
+                osc.frequency.linearRampToValueAtTime(40, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.15);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.15);
+            } 
+            else if (type === 'heal') {
+                // ハート回収：アルペジオ風の上昇きらきら音
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(660, now + 0.04);
+                osc.frequency.setValueAtTime(880, now + 0.08);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.16);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.16);
+            } 
+            else if (type === 'death') {
+                // 完全破壊（ゲームオーバー）：激しい「ガシャーン！」というガラス破壊音
+                const now = audioCtx.currentTime;
+
+                // 1. 【ドシャッ！】根幹となる激しい衝撃音（全帯域フルパワー・ノイズ）
+                // フィルターを通さない生のノイズを、最初の一瞬（0.2秒）だけ大音量で炸裂させます
+                const bufSize1 = audioCtx.sampleRate * 0.2; 
+                const buf1 = audioCtx.createBuffer(1, bufSize1, audioCtx.sampleRate);
+                const data1 = buf1.getChannelData(0);
+                for (let i = 0; i < bufSize1; i++) data1[i] = Math.random() * 2 - 1;
+                const noise1 = audioCtx.createBufferSource();
+                noise1.buffer = buf1;
+
+                const gain1 = audioCtx.createGain();
+                gain1.gain.setValueAtTime(0.6, now); // 音量を一気に引き上げ
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+                noise1.connect(gain1); gain1.connect(audioCtx.destination);
+                noise1.start(now); noise1.stop(now + 0.2);
+
+                // 2. 【シャーーーン！】豪快に飛び散る大量の破片（ミドルハイパス・ノイズ）
+                // フィルターの基準を少し下げて、ガラスがぶつかり合う「ガシャガシャ」した帯域を強調
+                const bufSize2 = audioCtx.sampleRate * 0.45;
+                const buf2 = audioCtx.createBuffer(1, bufSize2, audioCtx.sampleRate);
+                const data2 = buf2.getChannelData(0);
+                for (let i = 0; i < bufSize2; i++) data2[i] = Math.random() * 2 - 1;
+                const noise2 = audioCtx.createBufferSource();
+                noise2.buffer = buf2;
+
+                const filter2 = audioCtx.createBiquadFilter();
+                filter2.type = 'highpass';
+                filter2.frequency.setValueAtTime(2200, now); // 2200Hzまで下げて厚みを出す
+
+                const gain2 = audioCtx.createGain();
+                gain2.gain.setValueAtTime(0.45, now);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+                noise2.connect(filter2); filter2.connect(gain2); gain2.connect(audioCtx.destination);
+                noise2.start(now); noise2.stop(now + 0.45);
+
+                // 3. 【ガシッ！】衝撃の瞬間を補強する硬い打撃音（低音のこぎり波）
+                // おならにならない超ショート寸断（0.06秒）ののこぎり波で、破壊の「芯」を作ります
+                const osc3 = audioCtx.createOscillator();
+                const gain3 = audioCtx.createGain();
+                osc3.type = 'sawtooth';
+                osc3.frequency.setValueAtTime(380, now);
+                osc3.frequency.linearRampToValueAtTime(120, now + 0.06);
+
+                gain3.gain.setValueAtTime(0.4, now);
+                gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+                osc3.connect(gain3); gain3.connect(audioCtx.destination);
+                osc3.start(now); osc3.stop(now + 0.06);
+
+                // 4. 【キーン…】複雑に響くガラスの金属的な余韻（不協和音サイン波×3）
+                // 3つの異なる高音を同時に鳴らし、よりリアルで冷たい余韻を残します
+                const frequencies = [3200, 4150, 4900];
+                frequencies.forEach((freq) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now);
+                    // わずかにピッチを落としながら消えていくことでリアルさを演出
+                    osc.frequency.linearRampToValueAtTime(freq - 150, now + 0.6);
+
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(now); osc.stop(now + 0.6);
+                });
+            }
+        }
+
+        // 音声呼び出し用ラッパー
+        function handleStartButton(mode) {
+            initAudio();
+            playSE('select');
+            startGame(mode);
+        }
+        function handleBackButton() {
+            playSE('select');
+            backToTitle();
+        }
+
+        // --------------------------------------------------
         // メニューボタンと最高スコアの初期化表示
+        // --------------------------------------------------
         function updateMenuButtons() {
             document.getElementById('btn-normal').innerHTML = `NORMAL RUN<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">LIFE: 3 (NO LIMIT)<br>BEST: ${highScoreNormal.toFixed(2)}s</span>`;
             document.getElementById('btn-sudden').innerHTML = `SUDDEN RUN<br><span style="font-size: 10px; font-weight: normal; opacity: 0.8;">LIFE: 1<br>BEST: ${highScoreSudden.toFixed(2)}s</span>`;
@@ -325,7 +549,6 @@
             }
             hudLevel.textContent = `DENSITY: ${lvText}`;
 
-            // NORMALモード限定：10秒ごとにライフ回復ハートを設置
             if (gameMode === 'NORMAL' && survivalTime - lastHeartSpawnTime >= 10) {
                 obstacles.push({
                     id: Math.random(),
@@ -461,6 +684,7 @@
                 if (lives <= 0) {
                     startDyingSequence(reason);
                 } else {
+                    playSE('hit'); // ダメージSE
                     isInvincible = true;
                     invincibleUntil = performance.now() + 2000;
                     flashAlpha = 0.25;
@@ -474,6 +698,7 @@
             pendingReason = reason;
             dyingEndTime = performance.now() + 1000;
             createExplosionParticles(playerX, playerY);
+            playSE('death'); // 爆発・死亡SE
             flashAlpha = 0.5;
             flashColorStr = 'rgba(255, 0, 85, 0.6)';
         }
@@ -683,28 +908,22 @@
                         handleHit('飛来メテオに撃墜された！');
                     }
                 }
-                // 5. 回復ハート (NORMAL専用・【改良版】全方位・前後対応型マグネット)
+                // 5. 回復ハート
                 else if (obs.type === 'heart') {
                     if (obs.y === undefined || obs.y === null) {
                         obs.y = midY;
                     }
 
-                    // 機体とハートの画面上での2次元直線距離を算出
                     let diffX = playerX - screenX;
                     let diffY = playerY - obs.y;
                     let distance = Math.sqrt(diffX * diffX + diffY * diffY);
 
-                    // 前後左右問わず、機体の周囲180px（磁界）に近づいた場合
                     if (gameState === 'PLAYING' && distance < 180) {
-                        // ワールド座標ベースで機体へ吸い寄せる (X軸・Y軸両方を同時に補間)
                         let playerWorldX = cameraX + playerX;
-                        obs.x += (playerWorldX - obs.x) * 0.24; // スクロールに逆らう、あるいは追いかける強烈な吸引
+                        obs.x += (playerWorldX - obs.x) * 0.24; 
                         obs.y += (playerY - obs.y) * 0.24;
-                        
-                        // 座標が動いたので画面描画・当たり判定用にscreenXを再同期
                         screenX = obs.x - cameraX;
                     } else {
-                        // 磁界の外にいる時は元の軌道（ベースライン上をふわふわ浮遊）
                         let targetY = midY + Math.sin(timestamp * 0.005) * 15;
                         obs.y += (targetY - obs.y) * 0.1;
                     }
@@ -726,6 +945,7 @@
                         lives++; 
                         updateLivesHUD();
                         createRecoveryParticles(screenX, itemY);
+                        playSE('heal'); // 回復SE
                         flashAlpha = 0.35;
                         flashColorStr = 'rgba(0, 255, 85, 0.4)';
                         return false; 
@@ -735,7 +955,7 @@
                 return true;
             });
 
-            // --- 自機描画 ---
+            // --- 自機描画（修復補完） ---
             if (gameState === 'PLAYING') {
                 let showPlayer = true;
                 if (isInvincible) {
@@ -745,53 +965,59 @@
                     ctx.shadowColor = '#00ffcc'; ctx.shadowBlur = 15; 
                     ctx.strokeStyle = isInvincible ? 'rgba(0, 255, 204, 0.4)' : '#00ffcc'; 
                     ctx.lineWidth = 5; ctx.lineCap = 'round';
-                    ctx.beginPath(); ctx.moveTo(playerX, rodTopY); ctx.lineTo(playerX, rodBottomY); ctx.stroke();
-                    ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 5; ctx.beginPath(); ctx.arc(playerX, playerY, 3, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(playerX, rodTopY);
+                    ctx.lineTo(playerX, rodBottomY);
+                    ctx.stroke();
                 }
             }
 
-            // --- パーティクル処理 ---
+            // --- パーティクル描画・更新 ---
             particles = particles.filter(p => {
-                p.x += p.vx; p.y += p.vy;
+                p.x += p.vx;
+                p.y += p.vy;
                 p.alpha -= p.decay;
                 if (p.alpha <= 0) return false;
 
                 ctx.save();
                 ctx.globalAlpha = p.alpha;
-                ctx.shadowBlur = 10; ctx.shadowColor = p.color;
-                ctx.fillStyle = p.color; ctx.strokeStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = p.type === 'line' ? 12 : 6;
+                ctx.strokeStyle = p.color;
+                ctx.fillStyle = p.color;
 
-                if (p.type === 'spark') {
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
-                } else if (p.type === 'line') {
+                if (p.type === 'line') {
                     p.angle += p.vAngle;
-                    ctx.lineWidth = 3;
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.angle);
+                    ctx.lineWidth = 2;
                     ctx.beginPath();
-                    let x1 = p.x - Math.cos(p.angle) * p.length / 2;
-                    let y1 = p.y - Math.sin(p.angle) * p.length / 2;
-                    let x2 = p.x + Math.cos(p.angle) * p.length / 2;
-                    let y2 = p.y + Math.sin(p.angle) * p.length / 2;
-                    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+                    ctx.moveTo(-p.length / 2, 0);
+                    ctx.lineTo(p.length / 2, 0);
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
                 }
                 ctx.restore();
                 return true;
             });
 
-            ctx.restore();
-
-            // --- フラッシュエフェクト ---
+            // --- 全画面フラッシュエフェクト ---
             if (flashAlpha > 0) {
-                ctx.save();
                 ctx.fillStyle = flashColorStr;
                 ctx.globalAlpha = flashAlpha;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.restore();
-                flashAlpha -= 0.02;
+                ctx.globalAlpha = 1.0;
+                flashAlpha -= 0.015;
             }
 
+            ctx.restore();
             requestAnimationFrame(update);
         }
 
+        // ループの開始
         requestAnimationFrame(update);
     </script>
 </body>
