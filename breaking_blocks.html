@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>極限爽快！コンボ覚醒ブロック崩し</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background: #0a0a1a; color: #fff;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: flex-start;
+            min-height: 100vh; overflow: hidden;
+            touch-action: none;
+        }
+        h1 {
+            margin: 10px 0 5px 0; font-size: 18px;
+            text-shadow: 0 0 10px #00ffff; text-align: center;
+        }
+        #ui {
+            display: flex; width: 95%; max-width: 400px;
+            justify-content: space-between; padding: 5px;
+            font-size: 13px; font-weight: bold; box-sizing: border-box;
+        }
+        .highlight { color: #00ffff; }
+        .danger { color: #ff00ff; }
+        .hyper { color: #ff3300; text-shadow: 0 0 10px #ff3300; font-size: 15px; animation: blink 0.5s infinite alternate; }
+        @keyframes blink { from { opacity: 0.4; } to { opacity: 1; } }
+        #gameContainer {
+            position: relative; width: 95%; max-width: 400px;
+            aspect-ratio: 2 / 3; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            border-radius: 8px; overflow: hidden;
+        }
+        canvas { background: #050510; width: 100%; height: 100%; display: block; }
+        #startScreen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 5, 16, 0.9);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 10; padding: 20px; box-sizing: border-box; text-align: center;
+        }
+        .btn {
+            padding: 12px 30px; font-size: 18px; font-weight: bold;
+            color: #00ffff; background: transparent; border: 2px solid #00ffff;
+            border-radius: 50px; text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🚀 HYPER BREAKOUT: AWAKENING 🚀</h1>
+    <div id="ui">
+        <div id="stageDisplay" class="highlight">STAGE: 1</div>
+        <div id="scoreDisplay">SCORE: 0</div>
+        <div id="comboDisplay" class="danger">COMBO: 0</div>
+        <div id="ballDisplay">BALLS: 1</div>
+    </div>
+    
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <div id="startScreen">
+            <button class="btn">START DESTRUCTION</button>
+            <p style="margin-top:15px; color:#aaa; font-size: 13px; line-height: 1.5;">
+                画面スライドでパドル移動！<br>
+                【30コンボで覚醒】全ボールが貫通し、レーザーが狂ったように連射されます！
+            </p>
+        </div>
+    </div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const startScreen = document.getElementById("startScreen");
+
+// サウンドシステム
+let audioCtx = null;
+function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+function playSound(type) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+
+    if (type === 'break') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(250 + Math.random() * 500, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.08);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.08);
+    } else if (type === 'hit') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220 + Math.random() * 100, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.04);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.04);
+    } else if (type === 'laser') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(combo >= 30 ? 900 : 650, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.06);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.06);
+    } else if (type === 'item') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+    }
+}
+
+// ゲーム状態
+let stage = 1;
+let score = 0;
+let combo = 0;
+let comboTimer = 0;
+let isPlaying = false;
+let shakeTime = 0;
+let isMouseDown = false;
+let laserCooldown = 0;
+let isHyper = false;
+
+// パドルの基本設定（縮小を廃止し、常に広めで快適に！）
+const paddle = {
+    x: 0, y: canvas.height - 40,
+    width: 100, height: 14,
+    color: "#00ffff", wideTimer: 0
+};
+
+let balls = []; let blocks = []; let items = []; let particles = []; let lasers = [];
+
+const ITEM_TYPES = {
+    MULTI: { text: "★ MULTI", color: "#ffff00" },
+    LASER: { text: "⚡ LASER", color: "#ff00ff" },
+    FIRE:  { text: "🔥 FIRE",  color: "#ff3300" },
+    WIDE:  { text: "↔ WIDE",  color: "#00ff00" }
+};
+
+const rowCount = 9; const columnCount = 6;
+const blockWidth = 60; const blockHeight = 18;
+const blockPadding = 4; const blockOffsetTop = 60; const blockOffsetLeft = 10;
+
+function initBlocks() {
+    blocks = [];
+    const colors = ["#ff0055", "#ff5500", "#ffcc00", "#33ff00", "#00ffcc", "#0099ff", "#7700ff", "#ff00ff", "#ff0055"];
+    
+    for(let c=0; c<columnCount; c++) {
+        for(let r=0; r<rowCount; r++) {
+            // ステージに応じたHP設定（硬いブロックをあえて用意し、ハイパーモードで溶かす快感を演出）
+            let blockHp = 1;
+            if (stage >= 2 && r < 4) blockHp = 2;
+            if (stage >= 3 && r < 2) blockHp = 3;
+            if (stage >= 5) blockHp = Math.min(5, blockHp + Math.floor(stage/2));
+
+            blocks.push({
+                x: c * (blockWidth + blockPadding) + blockOffsetLeft,
+                y: r * (blockHeight + blockPadding) + blockOffsetTop,
+                color: colors[r % colors.length],
+                hp: blockHp, maxHp: blockHp
+            });
+        }
+    }
+}
+
+function createBall(x, y, vx, vy, isFire = false) {
+    const speedBoost = Math.min(3, (stage - 1) * 0.3); // 速度上昇も少しマイルドに
+    const baseVy = -(5.5 + speedBoost);
+    const baseVx = vx || (Math.random() * 4 - 2);
+
+    balls.push({
+        x: x, y: y,
+        vx: baseVx, vy: vy || baseVy,
+        radius: 6,
+        color: isFire ? "#ff3300" : "#ffffff",
+        isFire: isFire, fireTimer: isFire ? 400 : 0
+    });
+}
+
+function createParticles(x, y, color, count = 8) {
+    for (let i = 0; i < count; i++) {
+        particles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
+            radius: Math.random() * 3 + 1, color: color, alpha: 1, life: 25
+        });
+    }
+}
+
+startScreen.addEventListener("click", gameStart);
+startScreen.addEventListener("touchstart", (e) => { e.preventDefault(); gameStart(); }, {passive: false});
+
+function gameStart() {
+    if (isPlaying) return;
+    initAudio();
+    startScreen.style.display = "none";
+    isPlaying = true;
+    score = 0; stage = 1; combo = 0; isHyper = false;
+    balls = []; items = []; particles = []; lasers = [];
+    paddle.width = 100;
+    paddle.x = canvas.width / 2 - paddle.width / 2;
+    initBlocks();
+    createBall(canvas.width / 2, paddle.y - 15);
+}
+
+function nextStage() {
+    stage++;
+    combo = 0; isHyper = false;
+    lasers = []; items = [];
+    if (paddle.wideTimer <= 0) paddle.width = 100;
+
+    initBlocks();
+    createBall(canvas.width / 2, paddle.y - 15);
+    shakeTime = 25;
+    createParticles(canvas.width/2, canvas.height/3, "#ff00ff", 50);
+}
+
+// 座標計算
+function movePaddle(clientX) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const canvasX = (clientX - rect.left) * scaleX;
+    paddle.x = canvasX - paddle.width / 2;
+    if (paddle.x < 0) paddle.x = 0;
+    if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
+}
+
+window.addEventListener("touchstart", (e) => { if (!isPlaying) return; isMouseDown = true; movePaddle(e.touches[0].clientX); }, {passive: true});
+window.addEventListener("touchmove", (e) => { if (!isPlaying) return; movePaddle(e.touches[0].clientX); }, {passive: true});
+window.addEventListener("touchend", () => isMouseDown = false);
+window.addEventListener("mousemove", (e) => { if (!isPlaying) return; movePaddle(e.clientX); });
+window.addEventListener("mousedown", () => { if(isPlaying) isMouseDown = true; });
+window.addEventListener("mouseup", () => isMouseDown = false);
+
+function hitBlock(block, index, damage) {
+    block.hp -= damage;
+    score += 10 + combo * 2;
+    combo++;
+    comboTimer = 80; // コンボが繋がりやすいように受付時間を延長(60->80)
+    shakeTime = block.hp <= 0 ? 10 : 4; // 揺れ強化
+    createParticles(block.x + blockWidth/2, block.y + blockHeight/2, block.color, block.hp <= 0 ? 12 : 5);
+
+    if (block.hp <= 0) {
+        blocks.splice(index, 1);
+        playSound('break');
+
+        // 【要望通り】アイテムドロップ率はステージに関わらず一律25%の高確率で完全固定！
+        if (Math.random() < 0.25) {
+            const keys = Object.keys(ITEM_TYPES);
+            const type = keys[Math.floor(Math.random() * keys.length)];
+            items.push({ x: block.x + blockWidth / 2, y: block.y + blockHeight, type: type, vy: 2.5 });
+        }
+    } else {
+        playSound('hit');
+    }
+}
+
+function update() {
+    if (!isPlaying) return;
+
+    // ハイパーモード（覚醒）の判定
+    if (combo >= 30) {
+        if (!isHyper) { shakeTime = 20; } // 覚醒の瞬間に画面を揺らす
+        isHyper = true;
+    } else {
+        isHyper = false;
+    }
+
+    if (paddle.wideTimer > 0) {
+        paddle.wideTimer--;
+        if (paddle.wideTimer === 0) paddle.width = 100;
+    }
+    if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) combo = 0; }
+
+    // レーザー連射（ハイパーモード中はクールダウンを大幅短縮し、圧倒的な壁を作る）
+    if (isMouseDown && laserCooldown <= 0) {
+        lasers.push({ x: paddle.x + 10, y: paddle.y, vy: -12 });
+        lasers.push({ x: paddle.x + paddle.width - 10, y: paddle.y, vy: -12 });
+        laserCooldown = isHyper ? 2 : 7; // ハイパー時は3.5倍の連射速度！
+        playSound('laser');
+    }
+    if (laserCooldown > 0) laserCooldown--;
+
+    // レーザー移動
+    for (let i = lasers.length - 1; i >= 0; i--) {
+        let l = lasers[i]; l.y += l.vy;
+        if (l.y < 0) { lasers.splice(i, 1); continue; }
+
+        for (let j = blocks.length - 1; j >= 0; j--) {
+            let b = blocks[j];
+            if (l.x > b.x && l.x < b.x + blockWidth && l.y > b.y && l.y < b.y + blockHeight) {
+                lasers.splice(i, 1);
+                // ハイパーモード中のレーザーは硬いブロックに2ダメージ
+                hitBlock(b, j, isHyper ? 2 : 1);
+                break;
+            }
+        }
+    }
+
+    // ボール移動
+    for (let i = balls.length - 1; i >= 0; i--) {
+        let ball = balls[i]; ball.x += ball.vx; ball.y += ball.vy;
+
+        // ハイパーモード中は全てのボールが強制的に超ファイア（貫通）状態になる
+        if (isHyper) {
+            ball.isFire = true;
+            ball.color = "#ff3300";
+        } else if (ball.isFire) {
+            ball.fireTimer--;
+            if (ball.fireTimer <= 0) { ball.isFire = false; ball.color = "#ffffff"; }
+        }
+
+        if (ball.x - ball.radius < 0 || ball.x + ball.radius > canvas.width) {
+            ball.vx = -ball.vx; ball.x = ball.x - ball.radius < 0 ? ball.radius : canvas.width - ball.radius;
+        }
+        if (ball.y - ball.radius < 0) { ball.vy = -ball.vy; ball.y = ball.radius; }
+
+        // パドル反射
+        if (ball.y + ball.radius >= paddle.y && ball.y - ball.radius <= paddle.y + paddle.height) {
+            if (ball.x >= paddle.x && ball.x <= paddle.x + paddle.width) {
+                let collidePoint = ball.x - (paddle.x + paddle.width / 2);
+                collidePoint = collidePoint / (paddle.width / 2);
+                let angle = collidePoint * (Math.PI / 3); 
+
+                const speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy);
+                ball.vx = speed * Math.sin(angle);
+                ball.vy = -speed * Math.cos(angle);
+                ball.y = paddle.y - ball.radius;
+            }
+        }
+
+        // ブロック衝突
+        for (let j = blocks.length - 1; j >= 0; j--) {
+            let b = blocks[j];
+            if (ball.x + ball.radius > b.x && ball.x - ball.radius < b.x + blockWidth &&
+                ball.y + ball.radius > b.y && ball.y - ball.radius < b.y + blockHeight) {
+                
+                // 通常は1ダメージ、ファイア（ハイパー含む）なら一撃粉砕
+                let dmg = ball.isFire ? b.hp : 1;
+                hitBlock(b, j, dmg);
+                
+                if (!ball.isFire) { ball.vy = -ball.vy; break; }
+            }
+        }
+
+        if (ball.y > canvas.height) balls.splice(i, 1);
+    }
+
+    if (balls.length === 0) {
+        isPlaying = false; isMouseDown = false;
+        startScreen.style.display = "flex";
+        document.querySelector("#startScreen p").innerHTML = `GAME OVER<br>到達ステージ: <span class="highlight">${stage}</span><br>SCORE: ${score}<br><br><span style="color:#00ffff; font-weight:bold;">タップで再挑戦</span>`;
+    }
+
+    if (blocks.length === 0) { nextStage(); }
+
+    // アイテム処理
+    for (let i = items.length - 1; i >= 0; i--) {
+        let item = items[i]; item.y += item.vy;
+
+        if (item.y > paddle.y && item.y < paddle.y + paddle.height && item.x > paddle.x && item.x < paddle.x + paddle.width) {
+            playSound('item');
+            if (item.type === "MULTI") {
+                let currentBalls = [...balls];
+                currentBalls.forEach(b => {
+                    if(balls.length < 80) { 
+                        createBall(b.x, b.y, b.vx + 1.5, -Math.abs(b.vy), b.isFire);
+                        createBall(b.x, b.y, b.vx - 1.5, -Math.abs(b.vy), b.isFire);
+                    }
+                });
+            } else if (item.type === "WIDE") {
+                paddle.width = 160;
+                paddle.wideTimer = 400;
+            } else if (item.type === "FIRE") {
+                balls.forEach(b => { b.isFire = true; b.fireTimer = 400; b.color = "#ff3300"; });
+            }
+            items.splice(i, 1); continue;
+        }
+        if (item.y > canvas.height) items.splice(i, 1);
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i]; p.x += p.vx; p.y += p.vy; p.alpha -= 1 / p.life;
+        if (p.alpha <= 0) particles.splice(i, 1);
+    }
+
+    // UIテキスト更新
+    document.getElementById("stageDisplay").innerText = `STAGE: ${stage}`;
+    document.getElementById("scoreDisplay").innerText = `SCORE: ${score}`;
+    
+    const comboEl = document.getElementById("comboDisplay");
+    if (isHyper) {
+        comboEl.innerText = `HYPER: ${combo}`;
+        comboEl.className = "hyper";
+    } else {
+        comboEl.innerText = `COMBO: ${combo}`;
+        comboEl.className = "danger";
+    }
+    
+    document.getElementById("ballDisplay").innerText = `BALLS: ${balls.length}`;
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    
+    // 画面揺れエフェクト（ハイパー時は基本の揺れを微増）
+    if (shakeTime > 0) {
+        let intensity = isHyper ? 7 : 5;
+        let dx = (Math.random() - 0.5) * intensity; 
+        let dy = (Math.random() - 0.5) * intensity;
+        ctx.translate(dx, dy); shakeTime--;
+    }
+
+    // ハイパーモード時の背景フラッシュ光（うっすら赤く光らせる）
+    if (isHyper && Math.random() < 0.1) {
+        ctx.fillStyle = "rgba(255, 50, 0, 0.05)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // ブロック描画
+    blocks.forEach(b => {
+        ctx.fillStyle = b.color;
+        ctx.save();
+        ctx.globalAlpha = 0.4 + (b.hp / b.maxHp) * 0.6;
+        ctx.fillRect(b.x, b.y, blockWidth, blockHeight);
+        ctx.restore();
+
+        if (b.hp > 1) {
+            ctx.fillStyle = "rgba(255,255,255,0.8)";
+            ctx.font = "bold 10px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(b.hp, b.x + blockWidth/2, b.y + blockHeight/2);
+        }
+    });
+
+    // パドル
+    ctx.fillStyle = isHyper ? "#ff3300" : paddle.color; // ハイパー時はパドルも赤熱
+    ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+
+    // ボール
+    balls.forEach(ball => {
+        ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+        ctx.fillStyle = ball.color; ctx.fill(); ctx.closePath();
+    });
+
+    // レーザー
+    ctx.fillStyle = isHyper ? "#ff3300" : "#ff00ff"; 
+    lasers.forEach(l => { ctx.fillRect(l.x, l.y, 3, 14); });
+
+    // アイテム
+    items.forEach(item => {
+        ctx.fillStyle = ITEM_TYPES[item.type].color; ctx.font = "bold 10px Arial";
+        ctx.fillText(ITEM_TYPES[item.type].text, item.x - 18, item.y);
+    });
+
+    // パーティクル
+    particles.forEach(p => {
+        ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    });
+    ctx.restore();
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
