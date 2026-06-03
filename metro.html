@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Maze - 20 Gems Survival</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #020205;
+            font-family: sans-serif;
+            user-select: none;
+            touch-action: none;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        /* UIレイヤー */
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ff88;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-shadow: 0 0 8px rgba(0,255,136,0.6);
+            z-index: 10;
+            background: rgba(0,0,0,0.7);
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(0,255,136,0.3);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        #gem-title {
+            font-size: 1.4rem;
+        }
+        /* ナビゲーション矢印のスタイル */
+        #compass-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #00ffcc;
+            border-top: 1px solid rgba(0,255,136,0.2);
+            padding-top: 5px;
+            margin-top: 2px;
+        }
+        #compass-arrow {
+            display: inline-block;
+            font-size: 1.5rem;
+            transform-origin: center;
+            transition: transform 0.1s linear; 
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+        /* アナログスティック */
+        #joystick-zone {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX( -50%);
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none; 
+        }
+        #joystick-knob {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            pointer-events: none; 
+        }
+        /* 画面オーバーレイの共通スタイル */
+        .screen-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 100;
+            text-align: center;
+            padding-top: 35vh;
+            box-sizing: border-box;
+        }
+        .screen-overlay h1 {
+            font-size: 3.5rem;
+            margin: 0 0 10px 0;
+            letter-spacing: 4px;
+        }
+        .screen-overlay p {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+        .screen-overlay button {
+            padding: 12px 35px;
+            font-size: 1.1rem;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        /* ゲームオーバー画面 */
+        #gameover-screen {
+            background: rgba(15, 0, 0, 0.85);
+            color: #ff3333;
+        }
+        #gameover-screen h1 { text-shadow: 0 0 15px #ff0000; }
+        #gameover-screen button {
+            background: #ff2222;
+            box-shadow: 0 4px 15px rgba(255,0,0,0.4);
+        }
+        /* ゲームクリア画面 */
+        #clear-screen {
+            background: rgba(0, 15, 5, 0.85);
+            color: #00ff88;
+        }
+        #clear-screen h1 { text-shadow: 0 0 15px #00ff88; }
+        #clear-screen button {
+            background: #00cc77;
+            box-shadow: 0 4px 15px rgba(0,255,136,0.4);
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <!-- UI（宝石カウンター ＆ コンパス） -->
+    <div id="ui-layer">
+        <div id="gem-title">💎 GEMS: <span id="gem-count">0</span> / <span id="gem-total">20</span></div>
+        <div id="compass-container">
+            <span>📍 近くの宝石:</span>
+            <span id="compass-arrow">⬆</span>
+        </div>
+    </div>
+
+    <!-- アナログスティック -->
+    <div id="joystick-zone">
+        <div id="joystick-knob"></div>
+    </div>
+
+    <!-- ゲームオーバー画面 -->
+    <div id="gameover-screen" class="screen-overlay">
+        <h1>GAME OVER</h1>
+        <p>お化けに魂を奪われた...</p>
+        <button onclick="location.reload()">もう一度挑戦</button>
+    </div>
+
+    <!-- ゲームクリア画面 -->
+    <div id="clear-screen" class="screen-overlay">
+        <h1>STAGE CLEAR!</h1>
+        <p>20個の宝石をすべて集め、お化けの追跡を生き延びた！</p>
+        <button onclick="location.reload()">もう一度遊ぶ</button>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 3D空間・ライトの設定
+        // ==========================================
+        let isGameOver = false;
+        let isGameClear = false;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020205);
+        scene.fog = new THREE.FogExp2(0x020205, 0.15); 
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0x111122, 1);
+        scene.add(ambientLight);
+
+        const playerLight = new THREE.PointLight(0xffaa44, 4, 12);
+        camera.add(playerLight);
+        scene.add(camera);
+
+        // ==========================================
+        // 2. 4倍ステージ（20 × 20 マップ）
+        // ==========================================
+        const floorGeo = new THREE.PlaneGeometry(200, 200);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a0a10, roughness: 0.9 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        scene.add(floor);
+
+        const map = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1],
+            [1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,1,0,1],
+            [1,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+            [1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,1],
+            [1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,1],
+            [1,1,1,0,1,0,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+            [1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,0,1],
+            [1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,0,1],
+            [1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1],
+            [1,0,1,0,1,1,1,1,1,0,1,1,1,1,0,1,1,1,0,1],
+            [1,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,1,0,1],
+            [1,1,1,1,1,0,1,0,1,1,1,1,0,1,1,1,0,1,0,1],
+            [1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,1,0,1],
+            [1,0,1,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,0,1],
+            [1,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,1],
+            [1,0,1,0,1,1,1,1,0,1,1,1,0,1,1,1,1,1,0,1],
+            [1,0,0,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1],
+            [1,0,1,0,0,0,0,1,1,1,0,1,1,1,1,1,1,1,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        const wallSize = 3;
+        const wallGeo = new THREE.BoxGeometry(wallSize, 4, wallSize);
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1c1c28, roughness: 0.8 });
+
+        const halfWidth = (map[0].length * wallSize) / 2;
+        const halfHeight = (map.length * wallSize) / 2;
+
+        for (let r = 0; r < map.length; r++) {
+            for (let c = 0; c < map[r].length; c++) {
+                if (map[r][c] === 1) {
+                    const wall = new THREE.Mesh(wallGeo, wallMat);
+                    wall.position.set(
+                        c * wallSize - halfWidth + wallSize / 2,
+                        2,
+                        r * wallSize - halfHeight + wallSize / 2
+                    );
+                    scene.add(wall);
+                }
+            }
+        }
+
+        // プレイヤー初期位置
+        camera.position.set(
+            1 * wallSize - halfWidth + wallSize / 2,
+            1.2,
+            1 * wallSize - halfHeight + wallSize / 2
+        );
+
+        // ==========================================
+        // 3. お化け（エネミー）の作成
+        // ==========================================
+        const ghostGeo = new THREE.SphereGeometry(0.4, 16, 16);
+        const ghostMat = new THREE.MeshStandardMaterial({ color: 0xff1133, emissive: 0xff0022, roughness: 0.2 });
+        const ghost = new THREE.Mesh(ghostGeo, ghostMat);
+
+        const ghostLight = new THREE.PointLight(0xff0022, 3, 7);
+        ghost.add(ghostLight);
+        scene.add(ghost);
+
+        // お化けの初期位置
+        ghost.position.set(
+            18 * wallSize - halfWidth + wallSize / 2,
+            1.2,
+            18 * wallSize - halfHeight + wallSize / 2
+        );
+
+        // ==========================================
+        // 4. 緑の宝石を「20個」配置システム
+        // ==========================================
+        const gems = [];
+        let TOTAL_GEMS = 20; // 20個に変更
+        let collectedGems = 0;
+
+        function initGems() {
+            const emptyCells = [];
+            for (let r = 0; r < map.length; r++) {
+                for (let c = 0; c < map[r].length; c++) {
+                    if (map[r][c] === 0) {
+                        if ((r <= 2 && c <= 2) || (r >= 17 && c >= 17)) continue;
+                        emptyCells.push({ r, c });
+                    }
+                }
+            }
+
+            // シャッフル
+            for (let i = emptyCells.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [emptyCells[i], emptyCells[j]] = [emptyCells[j], emptyCells[i]];
+            }
+
+            if (emptyCells.length < TOTAL_GEMS) {
+                TOTAL_GEMS = emptyCells.length;
+            }
+            document.getElementById('gem-total').innerText = TOTAL_GEMS;
+
+            const gemGeo = new THREE.OctahedronGeometry(0.25, 0); 
+            const gemMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x005522, roughness: 0.1, metalness: 0.6 });
+
+            for (let i = 0; i < TOTAL_GEMS; i++) {
+                const cell = emptyCells[i];
+                const gem = new THREE.Mesh(gemGeo, gemMat);
+                
+                gem.position.set(
+                    cell.c * wallSize - halfWidth + wallSize / 2,
+                    0.9, 
+                    cell.r * wallSize - halfHeight + wallSize / 2
+                );
+
+                const gemLight = new THREE.PointLight(0x00ff88, 1.5, 4);
+                gem.add(gemLight);
+
+                scene.add(gem);
+                gems.push(gem);
+            }
+        }
+        initGems();
+
+        // ==========================================
+        // 5. 当たり判定システム（壁用）
+        // ==========================================
+        function checkCollision(x, z) {
+            const radius = 0.4; 
+            const checkPoints = [
+                { x: x - radius, z: z - radius },
+                { x: x + radius, z: z - radius },
+                { x: x - radius, z: z + radius },
+                { x: x + radius, z: z + radius }
+            ];
+
+            for (let p of checkPoints) {
+                const c = Math.floor((p.x + halfWidth) / wallSize);
+                const r = Math.floor((p.z + halfHeight) / wallSize);
+
+                if (r >= 0 && r < map.length && c >= 0 && c < map[0].length) {
+                    if (map[r][c] === 1) return true;
+                } else {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // ==========================================
+        // 6. サウンド（心音 ＆ 獲得音）
+        // ==========================================
+        let audioCtx = null;
+        let lastBeatTime = 0;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playHeartbeat(distance) {
+            if (!audioCtx || distance > 35) return;
+            const volume = Math.max(0, 1 - (distance / 35)) * 0.6;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(55, audioCtx.currentTime); 
+            osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+        }
+
+        function playGemSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
+            osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); 
+
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime); 
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        // ==========================================
+        // 7. アナログスティックの設定
+        // ==========================================
+        const input = { forward: 0, rotate: 0 };
+        const zone = document.getElementById('joystick-zone');
+        const knob = document.getElementById('joystick-knob');
+        const maxDistance = 45; 
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let activePointerId = null;
+
+        function handleStart(e) {
+            if (isGameOver || isGameClear) return;
+            initAudio(); 
+            isDragging = true;
+            activePointerId = e.pointerId;
+            zone.setPointerCapture(e.pointerId); 
+            
+            const rect = zone.getBoundingClientRect();
+            startX = rect.left + rect.width / 2;
+            startY = rect.top + rect.height / 2;
+            handleMove(e);
+        }
+
+        function handleMove(e) {
+            if (!isDragging || e.pointerId !== activePointerId || isGameOver || isGameClear) return;
+            let dx = e.clientX - startX;
+            let dy = e.clientY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > maxDistance) {
+                dx = (dx / distance) * maxDistance;
+                dy = (dy / distance) * maxDistance;
+            }
+            knob.style.transform = `translate(${dx}px, ${dy}px)`;
+            input.rotate = dx / maxDistance;    
+            input.forward = -dy / maxDistance;  
+        }
+
+        function handleEnd(e) {
+            if (!isDragging || e.pointerId !== activePointerId) return;
+            isDragging = false;
+            zone.releasePointerCapture(activePointerId);
+            activePointerId = null;
+            knob.style.transform = 'translate(0px, 0px)'; 
+            input.forward = 0;
+            input.rotate = 0;
+        }
+
+        zone.addEventListener('pointerdown', handleStart);
+        zone.addEventListener('pointermove', handleMove);
+        zone.addEventListener('pointerup', handleEnd);
+        zone.addEventListener('pointercancel', handleEnd);
+
+        const keys = { w:false, s:false, a:false, d:false, ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false };
+        window.addEventListener('keydown', (e) => { initAudio(); if(e.key in keys) keys[e.key] = true; });
+        window.addEventListener('keyup', (e) => { if(e.key in keys) keys[e.key] = false; });
+
+        // ==========================================
+        // 8. 各オブジェクトの更新AI＆コンパス計算
+        // ==========================================
+        const GHOST_SPEED = 0.032; 
+
+        function updateGhost() {
+            if (isGameOver || isGameClear) return;
+
+            const dir = new THREE.Vector3();
+            dir.subVectors(camera.position, ghost.position);
+            dir.y = 0; dir.normalize();
+
+            const nextGhostX = ghost.position.x + dir.x * GHOST_SPEED;
+            if (!checkCollision(nextGhostX, ghost.position.z)) ghost.position.x = nextGhostX;
+            const nextGhostZ = ghost.position.z + dir.z * GHOST_SPEED;
+            if (!checkCollision(ghost.position.x, nextGhostZ)) ghost.position.z = nextGhostZ;
+
+            ghost.position.y = 1.2 + Math.sin(Date.now() * 0.005) * 0.1;
+
+            const distance = camera.position.distanceTo(ghost.position);
+
+            const beatInterval = Math.max(220, Math.min(1500, distance * 45));
+            const now = Date.now();
+            if (now - lastBeatTime > beatInterval) {
+                playHeartbeat(distance);
+                lastBeatTime = now;
+            }
+
+            if (distance < 0.8) triggerGameOver();
+        }
+
+        function updateGems() {
+            if (isGameOver || isGameClear) return;
+
+            const time = Date.now();
+            let closestGem = null;
+            let minDist = Infinity;
+
+            for (let i = gems.length - 1; i >= 0; i--) {
+                const gem = gems[i];
+
+                gem.rotation.y += 0.02;
+                gem.rotation.x += 0.01;
+                gem.position.y = 0.9 + Math.sin(time * 0.003 + i) * 0.08;
+
+                const dist = camera.position.distanceTo(gem.position);
+                
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestGem = gem;
+                }
+
+                if (dist < 0.8) {
+                    scene.remove(gem);
+                    gems.splice(i, 1);
+                    
+                    collectedGems++;
+                    document.getElementById('gem-count').innerText = collectedGems;
+                    playGemSound();
+
+                    if (collectedGems >= TOTAL_GEMS) {
+                        triggerGameClear();
+                        return;
+                    }
+                }
+            }
+
+            // 最寄り宝石コンパス計算
+            const compassContainer = document.getElementById('compass-container');
+            const compassArrow = document.getElementById('compass-arrow');
+
+            if (closestGem) {
+                compassContainer.style.display = 'flex';
+                const targetPos = closestGem.position.clone();
+                camera.worldToLocal(targetPos);
+                const angle = Math.atan2(targetPos.x, -targetPos.z);
+                const deg = (angle * 180) / Math.PI;
+                compassArrow.style.transform = `rotate(${deg}deg)`;
+            } else {
+                compassContainer.style.display = 'none';
+            }
+        }
+
+        function triggerGameOver() {
+            isGameOver = true;
+            document.getElementById('gameover-screen').style.display = 'block';
+            resetInputs();
+        }
+
+        function triggerGameClear() {
+            isGameClear = true;
+            document.getElementById('clear-screen').style.display = 'block';
+            resetInputs();
+        }
+
+        function resetInputs() {
+            input.forward = 0; input.rotate = 0;
+            knob.style.transform = 'translate(0px, 0px)';
+        }
+
+        // ==========================================
+        // 9. ゲームループ
+        // ==========================================
+        const MAX_MOVE_SPEED = 0.08;
+        const MAX_ROTATE_SPEED = 0.04;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!isGameOver && !isGameClear) {
+                if (!isDragging) {
+                    input.forward = (keys.w || keys.ArrowUp) ? 1 : (keys.s || keys.ArrowDown) ? -1 : 0;
+                    input.rotate = (keys.d || keys.ArrowRight) ? 1 : (keys.a || keys.ArrowLeft) ? -1 : 0;
+                }
+
+                camera.rotation.y -= input.rotate * MAX_ROTATE_SPEED;
+
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                direction.y = 0; direction.normalize();
+
+                const moveAmt = input.forward * MAX_MOVE_SPEED;
+
+                const nextX = camera.position.x + direction.x * moveAmt;
+                if (!checkCollision(nextX, camera.position.z)) camera.position.x = nextX;
+                const nextZ = camera.position.z + direction.z * moveAmt;
+                if (!checkCollision(camera.position.x, nextZ)) camera.position.z = nextZ;
+
+                updateGhost();
+                updateGems(); 
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
