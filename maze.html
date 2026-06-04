@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Maze - Distance Tracker Survival</title>
+    <title>3D Maze - Swipe Look Survival</title>
     <style>
         body {
             margin: 0;
@@ -65,7 +65,7 @@
             background: rgba(0, 255, 200, 0.15);
             padding: 1px 6px;
             border-radius: 4px;
-            font-family: monospace; /* 数値がブレないように等幅フォント */
+            font-family: monospace;
         }
         #compass-arrow {
             display: inline-block;
@@ -110,7 +110,7 @@
             transition: box-shadow 0.1s, background 0.1s;
         }
         
-        /* アナログスティック */
+        /* 移動用アナログスティック（左側のみ維持） */
         .joystick-zone {
             position: absolute;
             bottom: 50px;
@@ -128,7 +128,6 @@
             touch-action: none; 
         }
         #joystick-left { left: 40px; }
-        #joystick-right { right: 40px; }
 
         .joystick-knob {
             width: 50px;
@@ -199,10 +198,6 @@
 
     <div id="joystick-left" class="joystick-zone">
         <div id="joystick-left-knob" class="joystick-knob"></div>
-    </div>
-
-    <div id="joystick-right" class="joystick-zone">
-        <div id="joystick-right-knob" class="joystick-knob"></div>
     </div>
 
     <div id="gameover-screen" class="screen-overlay">
@@ -365,7 +360,6 @@
         let collectedGems = 0;
 
         function initItems() {
-            // 通常マップアイテム
             const mapCell = emptyCells.pop();
             const mapItemGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4); 
             const mapItemMat = new THREE.MeshStandardMaterial({ color: 0x00aaff, emissive: 0x0055ff, roughness: 0.1 });
@@ -375,7 +369,6 @@
             mapItem.add(mapLight);
             scene.add(mapItem);
 
-            // レーダーアイテムの生成 (3個・黄金のピラミッド型)
             const radarGeo = new THREE.ConeGeometry(0.25, 0.5, 4); 
             const radarMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0x443300, roughness: 0.2 });
             for (let i = 0; i < 3; i++) {
@@ -389,13 +382,11 @@
                 radarItems.push(rItem);
             }
 
-            // 追加お化け用の空きマスを3つキープ
             for (let i = 0; i < 3; i++) {
                 const ghostCell = emptyCells.pop();
                 if (ghostCell) extraGhostSpawns.push(ghostCell);
             }
 
-            // 宝石アイテム
             if (emptyCells.length < TOTAL_GEMS) TOTAL_GEMS = emptyCells.length;
             document.getElementById('gem-total').innerText = TOTAL_GEMS;
 
@@ -489,11 +480,12 @@
         }
 
         // ==========================================
-        // 7. 操作系（ツインスティック ＆ キーボード）
+        // 7. 操作系（左スティック ＆ 画面スワイプ視点移動）
         // ==========================================
         const input = { forward: 0, sideways: 0, rotate: 0 }; 
         const maxDistance = 45; 
 
+        // --- 左アナログスティック（移動用） ---
         const leftZone = document.getElementById('joystick-left');
         const leftKnob = document.getElementById('joystick-left-knob');
         let isLeftDragging = false; 
@@ -502,6 +494,7 @@
 
         leftZone.addEventListener('pointerdown', (e) => {
             if (isGameOver || isGameClear) return;
+            e.stopPropagation(); // 📍 スワイプ視点移動の誤爆を防ぐ
             initAudio(); isLeftDragging = true; activeLeftPointerId = e.pointerId; leftZone.setPointerCapture(e.pointerId); 
             const r = leftZone.getBoundingClientRect(); leftStartX = r.left + r.width / 2; leftStartY = r.top + r.height / 2;
             handleLeftMove(e);
@@ -520,32 +513,42 @@
         }
         leftZone.addEventListener('pointermove', handleLeftMove); leftZone.addEventListener('pointerup', handleLeftEnd); leftZone.addEventListener('pointercancel', handleLeftEnd);
 
-        const rightZone = document.getElementById('joystick-right');
-        const rightKnob = document.getElementById('joystick-right-knob');
-        let isRightDragging = false; 
-        let rightStartX = 0, rightStartY = 0; 
-        let activeRightPointerId = null;
+        // --- 📍 改修：画面スワイプによる視点移動システム ---
+        let isSwipeRotating = false;
+        let lastSwipeX = 0;
+        let activeSwipePointerId = null;
+        const SWIPE_SENSITIVITY = 0.005; // 視点移動の感度（数値を上げると速くなります）
 
-        rightZone.addEventListener('pointerdown', (e) => {
+        window.addEventListener('pointerdown', (e) => {
             if (isGameOver || isGameClear) return;
-            initAudio(); isRightDragging = true; activeRightPointerId = e.pointerId; rightZone.setPointerCapture(e.pointerId); 
-            const r = rightZone.getBoundingClientRect(); rightStartX = r.left + r.width / 2; rightStartY = r.top + r.height / 2;
-            handleRightMove(e);
+            // UIや左スティック上でのタッチでなければ、視点移動を開始
+            if (e.target.closest('#joystick-left') || e.target.closest('#ui-layer') || e.target.closest('.screen-overlay')) return;
+            
+            initAudio();
+            isSwipeRotating = true;
+            lastSwipeX = e.clientX;
+            activeSwipePointerId = e.pointerId;
         });
-        function handleRightMove(e) {
-            if (!isRightDragging || e.pointerId !== activeRightPointerId || isGameOver || isGameClear) return;
-            let dx = e.clientX - rightStartX; const distance = Math.abs(dx);
-            if (distance > maxDistance) { dx = (dx / distance) * maxDistance; }
-            rightKnob.style.transform = `translate(${dx}px, 0px)`; 
-            input.rotate = dx / maxDistance; 
-        }
-        function handleRightEnd(e) {
-            if (!isRightDragging || e.pointerId !== activeRightPointerId) return;
-            isRightDragging = false; rightZone.releasePointerCapture(activeRightPointerId); activeRightPointerId = null;
-            rightKnob.style.transform = 'translate(0px, 0px)'; input.rotate = 0; 
-        }
-        rightZone.addEventListener('pointermove', handleRightMove); rightZone.addEventListener('pointerup', handleRightEnd); rightZone.addEventListener('pointercancel', handleRightEnd);
 
+        window.addEventListener('pointermove', (e) => {
+            if (!isSwipeRotating || e.pointerId !== activeSwipePointerId || isGameOver || isGameClear) return;
+            
+            // 前回のフレームからの横移動量を計算し、カメラの角度を直接変化させる
+            const deltaX = e.clientX - lastSwipeX;
+            camera.rotation.y -= deltaX * SWIPE_SENSITIVITY;
+            lastSwipeX = e.clientX;
+        });
+
+        const handleSwipeEnd = (e) => {
+            if (e.pointerId === activeSwipePointerId) {
+                isSwipeRotating = false;
+                activeSwipePointerId = null;
+            }
+        };
+        window.addEventListener('pointerup', handleSwipeEnd);
+        window.addEventListener('pointercancel', handleSwipeEnd);
+
+        // キーボード操作用の枠組み
         const keys = { w:false, s:false, a:false, d:false, ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false };
         window.addEventListener('keydown', (e) => { initAudio(); if(e.key in keys) keys[e.key] = true; });
         window.addEventListener('keyup', (e) => { if(e.key in keys) keys[e.key] = false; });
@@ -662,7 +665,7 @@
 
             const compassContainer = document.getElementById('compass-container');
             const compassArrow = document.getElementById('compass-arrow');
-            const compassDistance = document.getElementById('compass-distance'); // 📍 追加
+            const compassDistance = document.getElementById('compass-distance'); 
 
             if (closestGem) {
                 compassContainer.style.display = 'flex';
@@ -670,7 +673,6 @@
                 const angle = Math.atan2(targetPos.x, -targetPos.z); const deg = (angle * 180) / Math.PI;
                 compassArrow.style.transform = `rotate(${deg}deg)`;
                 
-                // 📍 改修：3D空間上の直線距離を小数点第1位まで算出してUIへセット
                 compassDistance.innerText = `${minDist.toFixed(1)}m`;
             } else {
                 compassContainer.style.display = 'none';
@@ -750,7 +752,8 @@
         function triggerGameClear() { isGameClear = true; document.getElementById('clear-screen').style.display = 'block'; resetInputs(); }
         function resetInputs() { 
             input.forward = 0; input.sideways = 0; input.rotate = 0; 
-            leftKnob.style.transform = 'translate(0px, 0px)'; rightKnob.style.transform = 'translate(0px, 0px)'; 
+            leftKnob.style.transform = 'translate(0px, 0px)'; 
+            isRotating = false; activeSwipePointerId = null;
             isRadarActive = false; document.getElementById('radar-ui').style.display = 'none';
         }
 
@@ -764,12 +767,16 @@
             requestAnimationFrame(animate);
 
             if (!isGameOver && !isGameClear) {
-                if (!isLeftDragging && !isRightDragging) {
+                // キーボードでの視点旋回は維持 (A, D または 矢印キー)
+                if (!isLeftDragging && !isSwipeRotating) {
                     input.forward = (keys.w || keys.ArrowUp) ? 1 : (keys.s || keys.ArrowDown) ? -1 : 0;
                     input.rotate = (keys.d || keys.ArrowRight) ? 1 : (keys.a || keys.ArrowLeft) ? -1 : 0;
                     input.sideways = 0;
+                } else {
+                    input.rotate = 0; 
                 }
 
+                // キーボードによる回転
                 camera.rotation.y -= input.rotate * MAX_ROTATE_SPEED;
 
                 const direction = new THREE.Vector3(); 
