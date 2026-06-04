@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Maze - 20 Gems Survival</title>
+    <title>3D Maze - Distance Tracker Survival</title>
     <style>
         body {
             margin: 0;
@@ -39,7 +39,17 @@
         #gem-title {
             font-size: 1.4rem;
         }
-        /* ナビゲーション矢印のスタイル */
+        /* レーダーUI */
+        #radar-ui {
+            display: none;
+            color: #ffcc00;
+            text-shadow: 0 0 10px rgba(255,204,0,0.6);
+            font-size: 1.1rem;
+            border-top: 1px solid rgba(255,204,0,0.3);
+            padding-top: 5px;
+            margin-top: 2px;
+        }
+        /* ナビゲーション矢印 & 距離表示 */
         #compass-container {
             display: flex;
             align-items: center;
@@ -49,6 +59,14 @@
             padding-top: 5px;
             margin-top: 2px;
         }
+        #compass-distance {
+            color: #ffffff;
+            font-weight: normal;
+            background: rgba(0, 255, 200, 0.15);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-family: monospace; /* 数値がブレないように等幅フォント */
+        }
         #compass-arrow {
             display: inline-block;
             font-size: 1.5rem;
@@ -57,12 +75,45 @@
             color: #00ffff;
             text-shadow: 0 0 10px #00ffff;
         }
+        /* ミニマップ */
+        #minimap-container {
+            display: none; 
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 120px;
+            height: 120px;
+            border: 2px solid rgba(0, 255, 200, 0.4);
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.6);
+            box-shadow: 0 0 15px rgba(0, 255, 200, 0.2);
+            pointer-events: none;
+        }
+        #minimap {
+            width: 120px;
+            height: 120px;
+            display: block;
+        }
+        /* お化けの接近インジケータ */
+        #danger-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 5;
+            box-shadow: inset 0 0 100px rgba(255, 0, 0, 0);
+            background: rgba(255, 0, 0, 0);
+            transition: box-shadow 0.1s, background 0.1s;
+        }
+        
         /* アナログスティック */
-        #joystick-zone {
+        .joystick-zone {
             position: absolute;
             bottom: 50px;
-            left: 50%;
-            transform: translateX( -50%);
             width: 120px;
             height: 120px;
             background: rgba(255, 255, 255, 0.08);
@@ -76,7 +127,10 @@
             justify-content: center;
             touch-action: none; 
         }
-        #joystick-knob {
+        #joystick-left { left: 40px; }
+        #joystick-right { right: 40px; }
+
+        .joystick-knob {
             width: 50px;
             height: 50px;
             background: rgba(255, 255, 255, 0.6);
@@ -84,7 +138,8 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             pointer-events: none; 
         }
-        /* 画面オーバーレイの共通スタイル */
+
+        /* 画面オーバーレイ */
         .screen-overlay {
             display: none;
             position: absolute;
@@ -115,58 +170,50 @@
             font-weight: bold;
             transition: 0.2s;
         }
-        /* ゲームオーバー画面 */
-        #gameover-screen {
-            background: rgba(15, 0, 0, 0.85);
-            color: #ff3333;
-        }
+        #gameover-screen { background: rgba(15, 0, 0, 0.85); color: #ff3333; }
         #gameover-screen h1 { text-shadow: 0 0 15px #ff0000; }
-        #gameover-screen button {
-            background: #ff2222;
-            box-shadow: 0 4px 15px rgba(255,0,0,0.4);
-        }
-        /* ゲームクリア画面 */
-        #clear-screen {
-            background: rgba(0, 15, 5, 0.85);
-            color: #00ff88;
-        }
+        #gameover-screen button { background: #ff2222; box-shadow: 0 4px 15px rgba(255,0,0,0.4); }
+        #clear-screen { background: rgba(0, 15, 5, 0.85); color: #00ff88; }
         #clear-screen h1 { text-shadow: 0 0 15px #00ff88; }
-        #clear-screen button {
-            background: #00cc77;
-            box-shadow: 0 4px 15px rgba(0,255,136,0.4);
-        }
+        #clear-screen button { background: #00cc77; box-shadow: 0 4px 15px rgba(0,255,136,0.4); }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
     <div id="canvas-container"></div>
+    <div id="danger-overlay"></div>
 
-    <!-- UI（宝石カウンター ＆ コンパス） -->
     <div id="ui-layer">
         <div id="gem-title">💎 GEMS: <span id="gem-count">0</span> / <span id="gem-total">20</span></div>
         <div id="compass-container">
-            <span>📍 近くの宝石:</span>
+            <span>📍 近くの宝石: <span id="compass-distance">0.0m</span></span>
             <span id="compass-arrow">⬆</span>
         </div>
+        <div id="radar-ui">📡 RADAR ACTIVE: <span id="radar-time">10</span>s</div>
     </div>
 
-    <!-- アナログスティック -->
-    <div id="joystick-zone">
-        <div id="joystick-knob"></div>
+    <div id="minimap-container">
+        <canvas id="minimap" width="120" height="120"></canvas>
     </div>
 
-    <!-- ゲームオーバー画面 -->
+    <div id="joystick-left" class="joystick-zone">
+        <div id="joystick-left-knob" class="joystick-knob"></div>
+    </div>
+
+    <div id="joystick-right" class="joystick-zone">
+        <div id="joystick-right-knob" class="joystick-knob"></div>
+    </div>
+
     <div id="gameover-screen" class="screen-overlay">
         <h1>GAME OVER</h1>
         <p>お化けに魂を奪われた...</p>
         <button onclick="location.reload()">もう一度挑戦</button>
     </div>
 
-    <!-- ゲームクリア画面 -->
     <div id="clear-screen" class="screen-overlay">
         <h1>STAGE CLEAR!</h1>
-        <p>20個の宝石をすべて集め、お化けの追跡を生き延びた！</p>
+        <p>すべての宝石を集め、生き延びた！</p>
         <button onclick="location.reload()">もう一度遊ぶ</button>
     </div>
 
@@ -176,6 +223,9 @@
         // ==========================================
         let isGameOver = false;
         let isGameClear = false;
+        let hasMap = false; 
+        let isRadarActive = false; 
+        let radarEndTime = 0;      
 
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x020205);
@@ -194,41 +244,80 @@
         scene.add(camera);
 
         // ==========================================
-        // 2. 4倍ステージ（20 × 20 マップ）
+        // 2. 迷路のランダム生成（穴掘り法）
         // ==========================================
-        const floorGeo = new THREE.PlaneGeometry(200, 200);
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a0a10, roughness: 0.9 });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.rotation.x = -Math.PI / 2;
-        scene.add(floor);
+        const MAP_SIZE = 21; 
+        const map = [];
+        for (let r = 0; r < MAP_SIZE; r++) {
+            map.push(new Array(MAP_SIZE).fill(1));
+        }
 
-        const map = [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1],
-            [1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,1,0,1],
-            [1,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
-            [1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,1],
-            [1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,1],
-            [1,1,1,0,1,0,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-            [1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,0,1],
-            [1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,0,1],
-            [1,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1],
-            [1,0,1,0,1,1,1,1,1,0,1,1,1,1,0,1,1,1,0,1],
-            [1,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,1,0,1],
-            [1,1,1,1,1,0,1,0,1,1,1,1,0,1,1,1,0,1,0,1],
-            [1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,1,0,1],
-            [1,0,1,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,0,1],
-            [1,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,1],
-            [1,0,1,0,1,1,1,1,0,1,1,1,0,1,1,1,1,1,0,1],
-            [1,0,0,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1],
-            [1,0,1,0,0,0,0,1,1,1,0,1,1,1,1,1,1,1,0,1],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        ];
+        const emptyCells = []; 
 
+        function generateRandomMaze() {
+            const stack = [];
+            map[1][1] = 0; 
+            stack.push({ r: 1, c: 1 });
+
+            while (stack.length > 0) {
+                const current = stack[stack.length - 1];
+                const neighbors = [];
+                const dirs = [
+                    { dr: -2, dc: 0, wr: -1, wc: 0 },
+                    { dr: 2, dc: 0, wr: 1, wc: 0 },
+                    { dr: 0, dc: -2, wr: 0, wc: -1 },
+                    { dr: 0, dc: 2, wr: 0, wc: 1 }
+                ];
+
+                dirs.forEach(d => {
+                    const nr = current.r + d.dr;
+                    const nc = current.c + d.dc;
+                    if (nr > 0 && nr < MAP_SIZE - 1 && nc > 0 && nc < MAP_SIZE - 1) {
+                        if (map[nr][nc] === 1) {
+                            neighbors.push({ nr, nc, wr: current.r + d.wr, wc: current.c + d.wc });
+                        }
+                    }
+                });
+
+                if (neighbors.length > 0) {
+                    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                    map[next.wr][next.wc] = 0; 
+                    map[next.nr][next.nc] = 0; 
+                    stack.push({ r: next.nr, c: next.nc });
+                } else {
+                    stack.pop(); 
+                }
+            }
+
+            for (let i = 0; i < 20; i++) {
+                const r = Math.floor(Math.random() * (MAP_SIZE - 2)) + 1;
+                const c = Math.floor(Math.random() * (MAP_SIZE - 2)) + 1;
+                if (map[r][c] === 1) map[r][c] = 0;
+            }
+
+            map[1][1] = 0;
+            map[MAP_SIZE - 2][MAP_SIZE - 2] = 0;
+            map[MAP_SIZE - 2][1] = 0;
+
+            for (let r = 0; r < MAP_SIZE; r++) {
+                for (let c = 0; c < MAP_SIZE; c++) {
+                    if (map[r][c] === 0) {
+                        if ((r <= 2 && c <= 2) || (r >= MAP_SIZE - 3 && c >= MAP_SIZE - 3) || (r >= MAP_SIZE - 3 && c <= 2)) continue;
+                        emptyCells.push({ r, c });
+                    }
+                }
+            }
+            for (let i = emptyCells.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [emptyCells[i], emptyCells[j]] = [emptyCells[j], emptyCells[i]];
+            }
+        }
+        generateRandomMaze();
+
+        const visitedMap = Array(map.length).fill().map(() => Array(map[0].length).fill(false));
         const wallSize = 3;
         const wallGeo = new THREE.BoxGeometry(wallSize, 4, wallSize);
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x1c1c28, roughness: 0.8 });
-
         const halfWidth = (map[0].length * wallSize) / 2;
         const halfHeight = (map.length * wallSize) / 2;
 
@@ -236,68 +325,78 @@
             for (let c = 0; c < map[r].length; c++) {
                 if (map[r][c] === 1) {
                     const wall = new THREE.Mesh(wallGeo, wallMat);
-                    wall.position.set(
-                        c * wallSize - halfWidth + wallSize / 2,
-                        2,
-                        r * wallSize - halfHeight + wallSize / 2
-                    );
+                    wall.position.set(c * wallSize - halfWidth + wallSize / 2, 2, r * wallSize - halfHeight + wallSize / 2);
                     scene.add(wall);
                 }
             }
         }
 
-        // プレイヤー初期位置
-        camera.position.set(
-            1 * wallSize - halfWidth + wallSize / 2,
-            1.2,
-            1 * wallSize - halfHeight + wallSize / 2
-        );
+        camera.position.set(1 * wallSize - halfWidth + wallSize / 2, 1.2, 1 * wallSize - halfHeight + wallSize / 2);
 
         // ==========================================
-        // 3. お化け（エネミー）の作成
+        // 3. お化け（エネミー）の作成 (初期は3体)
         // ==========================================
+        const ghosts = [];
+        const ghostSpawnPoints = [
+            { r: MAP_SIZE - 2, c: MAP_SIZE - 2 }, 
+            { r: MAP_SIZE - 2, c: 1 },             
+            { r: 1, c: MAP_SIZE - 2 }              
+        ];
         const ghostGeo = new THREE.SphereGeometry(0.4, 16, 16);
         const ghostMat = new THREE.MeshStandardMaterial({ color: 0xff1133, emissive: 0xff0022, roughness: 0.2 });
-        const ghost = new THREE.Mesh(ghostGeo, ghostMat);
 
-        const ghostLight = new THREE.PointLight(0xff0022, 3, 7);
-        ghost.add(ghostLight);
-        scene.add(ghost);
-
-        // お化けの初期位置
-        ghost.position.set(
-            18 * wallSize - halfWidth + wallSize / 2,
-            1.2,
-            18 * wallSize - halfHeight + wallSize / 2
-        );
+        ghostSpawnPoints.forEach(pos => {
+            const ghost = new THREE.Mesh(ghostGeo, ghostMat);
+            const ghostLight = new THREE.PointLight(0xff0022, 3, 7);
+            ghost.add(ghostLight);
+            scene.add(ghost);
+            ghost.position.set(pos.c * wallSize - halfWidth + wallSize / 2, 1.2, pos.r * wallSize - halfHeight + wallSize / 2);
+            ghosts.push(ghost);
+        });
 
         // ==========================================
-        // 4. 緑の宝石を「20個」配置システム
+        // 4. 各種アイテム（マップ、宝石、レーダー）の配置
         // ==========================================
+        let mapItem = null;
         const gems = [];
-        let TOTAL_GEMS = 20; // 20個に変更
+        const radarItems = []; 
+        const extraGhostSpawns = []; 
+        let TOTAL_GEMS = 20; 
         let collectedGems = 0;
 
-        function initGems() {
-            const emptyCells = [];
-            for (let r = 0; r < map.length; r++) {
-                for (let c = 0; c < map[r].length; c++) {
-                    if (map[r][c] === 0) {
-                        if ((r <= 2 && c <= 2) || (r >= 17 && c >= 17)) continue;
-                        emptyCells.push({ r, c });
-                    }
-                }
+        function initItems() {
+            // 通常マップアイテム
+            const mapCell = emptyCells.pop();
+            const mapItemGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4); 
+            const mapItemMat = new THREE.MeshStandardMaterial({ color: 0x00aaff, emissive: 0x0055ff, roughness: 0.1 });
+            mapItem = new THREE.Mesh(mapItemGeo, mapItemMat);
+            mapItem.position.set(mapCell.c * wallSize - halfWidth + wallSize / 2, 0.9, mapCell.r * wallSize - halfHeight + wallSize / 2);
+            const mapLight = new THREE.PointLight(0x00aaff, 2, 5);
+            mapItem.add(mapLight);
+            scene.add(mapItem);
+
+            // レーダーアイテムの生成 (3個・黄金のピラミッド型)
+            const radarGeo = new THREE.ConeGeometry(0.25, 0.5, 4); 
+            const radarMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0x443300, roughness: 0.2 });
+            for (let i = 0; i < 3; i++) {
+                const radarCell = emptyCells.pop();
+                if (!radarCell) break;
+                const rItem = new THREE.Mesh(radarGeo, radarMat);
+                rItem.position.set(radarCell.c * wallSize - halfWidth + wallSize / 2, 0.9, radarCell.r * wallSize - halfHeight + wallSize / 2);
+                const rLight = new THREE.PointLight(0xffcc00, 1.5, 4);
+                rItem.add(rLight);
+                scene.add(rItem);
+                radarItems.push(rItem);
             }
 
-            // シャッフル
-            for (let i = emptyCells.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [emptyCells[i], emptyCells[j]] = [emptyCells[j], emptyCells[i]];
+            // 追加お化け用の空きマスを3つキープ
+            for (let i = 0; i < 3; i++) {
+                const ghostCell = emptyCells.pop();
+                if (ghostCell) extraGhostSpawns.push(ghostCell);
             }
 
-            if (emptyCells.length < TOTAL_GEMS) {
-                TOTAL_GEMS = emptyCells.length;
-            }
+            // 宝石アイテム
+            if (emptyCells.length < TOTAL_GEMS) TOTAL_GEMS = emptyCells.length;
             document.getElementById('gem-total').innerText = TOTAL_GEMS;
 
             const gemGeo = new THREE.OctahedronGeometry(0.25, 0); 
@@ -306,38 +405,24 @@
             for (let i = 0; i < TOTAL_GEMS; i++) {
                 const cell = emptyCells[i];
                 const gem = new THREE.Mesh(gemGeo, gemMat);
-                
-                gem.position.set(
-                    cell.c * wallSize - halfWidth + wallSize / 2,
-                    0.9, 
-                    cell.r * wallSize - halfHeight + wallSize / 2
-                );
-
+                gem.position.set(cell.c * wallSize - halfWidth + wallSize / 2, 0.9, cell.r * wallSize - halfHeight + wallSize / 2);
                 const gemLight = new THREE.PointLight(0x00ff88, 1.5, 4);
                 gem.add(gemLight);
-
                 scene.add(gem);
                 gems.push(gem);
             }
         }
-        initGems();
+        initItems();
 
         // ==========================================
-        // 5. 当たり判定システム（壁用）
+        // 5. 当たり判定システム
         // ==========================================
         function checkCollision(x, z) {
             const radius = 0.4; 
-            const checkPoints = [
-                { x: x - radius, z: z - radius },
-                { x: x + radius, z: z - radius },
-                { x: x - radius, z: z + radius },
-                { x: x + radius, z: z + radius }
-            ];
-
+            const checkPoints = [{ x: x - radius, z: z - radius }, { x: x + radius, z: z - radius }, { x: x - radius, z: z + radius }, { x: x + radius, z: z + radius }];
             for (let p of checkPoints) {
                 const c = Math.floor((p.x + halfWidth) / wallSize);
                 const r = Math.floor((p.z + halfHeight) / wallSize);
-
                 if (r >= 0 && r < map.length && c >= 0 && c < map[0].length) {
                     if (map[r][c] === 1) return true;
                 } else {
@@ -348,18 +433,14 @@
         }
 
         // ==========================================
-        // 6. サウンド（心音 ＆ 獲得音）
+        // 6. サウンドシステム
         // ==========================================
         let audioCtx = null;
         let lastBeatTime = 0;
 
         function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
         function playHeartbeat(distance) {
@@ -367,190 +448,310 @@
             const volume = Math.max(0, 1 - (distance / 35)) * 0.6;
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(55, audioCtx.currentTime); 
+            osc.type = 'sine'; osc.frequency.setValueAtTime(55, audioCtx.currentTime); 
             osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
+            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + 0.25);
         }
 
         function playGemSound() {
             if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
-            osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); 
-
-            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime); 
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
+            const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); 
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + 0.15);
         }
 
-        // ==========================================
-        // 7. アナログスティックの設定
-        // ==========================================
-        const input = { forward: 0, rotate: 0 };
-        const zone = document.getElementById('joystick-zone');
-        const knob = document.getElementById('joystick-knob');
-        const maxDistance = 45; 
-        let isDragging = false;
-        let startX = 0, startY = 0;
-        let activePointerId = null;
-
-        function handleStart(e) {
-            if (isGameOver || isGameClear) return;
-            initAudio(); 
-            isDragging = true;
-            activePointerId = e.pointerId;
-            zone.setPointerCapture(e.pointerId); 
-            
-            const rect = zone.getBoundingClientRect();
-            startX = rect.left + rect.width / 2;
-            startY = rect.top + rect.height / 2;
-            handleMove(e);
+        function playMapUnlockSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            [523.25, 659.25, 783.99].forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                gainNode.gain.setValueAtTime(0.2, now + idx * 0.08); gainNode.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+                osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+                osc.start(now + idx * 0.08); osc.stop(now + idx * 0.08 + 0.3);
+            });
         }
 
-        function handleMove(e) {
-            if (!isDragging || e.pointerId !== activePointerId || isGameOver || isGameClear) return;
-            let dx = e.clientX - startX;
-            let dy = e.clientY - startY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance > maxDistance) {
-                dx = (dx / distance) * maxDistance;
-                dy = (dy / distance) * maxDistance;
+        function playRadarSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            for(let i=0; i<3; i++) {
+                const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now + i * 0.1); 
+                gainNode.gain.setValueAtTime(0.15, now + i * 0.1); gainNode.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.08);
+                osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+                osc.start(now + i * 0.1); osc.stop(now + i * 0.1 + 0.08);
             }
-            knob.style.transform = `translate(${dx}px, ${dy}px)`;
-            input.rotate = dx / maxDistance;    
-            input.forward = -dy / maxDistance;  
         }
 
-        function handleEnd(e) {
-            if (!isDragging || e.pointerId !== activePointerId) return;
-            isDragging = false;
-            zone.releasePointerCapture(activePointerId);
-            activePointerId = null;
-            knob.style.transform = 'translate(0px, 0px)'; 
-            input.forward = 0;
-            input.rotate = 0;
-        }
+        // ==========================================
+        // 7. 操作系（ツインスティック ＆ キーボード）
+        // ==========================================
+        const input = { forward: 0, sideways: 0, rotate: 0 }; 
+        const maxDistance = 45; 
 
-        zone.addEventListener('pointerdown', handleStart);
-        zone.addEventListener('pointermove', handleMove);
-        zone.addEventListener('pointerup', handleEnd);
-        zone.addEventListener('pointercancel', handleEnd);
+        const leftZone = document.getElementById('joystick-left');
+        const leftKnob = document.getElementById('joystick-left-knob');
+        let isLeftDragging = false; 
+        let leftStartX = 0, leftStartY = 0; 
+        let activeLeftPointerId = null;
+
+        leftZone.addEventListener('pointerdown', (e) => {
+            if (isGameOver || isGameClear) return;
+            initAudio(); isLeftDragging = true; activeLeftPointerId = e.pointerId; leftZone.setPointerCapture(e.pointerId); 
+            const r = leftZone.getBoundingClientRect(); leftStartX = r.left + r.width / 2; leftStartY = r.top + r.height / 2;
+            handleLeftMove(e);
+        });
+        function handleLeftMove(e) {
+            if (!isLeftDragging || e.pointerId !== activeLeftPointerId || isGameOver || isGameClear) return;
+            let dx = e.clientX - leftStartX; let dy = e.clientY - leftStartY; const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > maxDistance) { dx = (dx / distance) * maxDistance; dy = (dy / distance) * maxDistance; }
+            leftKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+            input.sideways = dx / maxDistance; input.forward = -dy / maxDistance;  
+        }
+        function handleLeftEnd(e) {
+            if (!isLeftDragging || e.pointerId !== activeLeftPointerId) return;
+            isLeftDragging = false; leftZone.releasePointerCapture(activeLeftPointerId); activeLeftPointerId = null;
+            leftKnob.style.transform = 'translate(0px, 0px)'; input.forward = 0; input.sideways = 0;
+        }
+        leftZone.addEventListener('pointermove', handleLeftMove); leftZone.addEventListener('pointerup', handleLeftEnd); leftZone.addEventListener('pointercancel', handleLeftEnd);
+
+        const rightZone = document.getElementById('joystick-right');
+        const rightKnob = document.getElementById('joystick-right-knob');
+        let isRightDragging = false; 
+        let rightStartX = 0, rightStartY = 0; 
+        let activeRightPointerId = null;
+
+        rightZone.addEventListener('pointerdown', (e) => {
+            if (isGameOver || isGameClear) return;
+            initAudio(); isRightDragging = true; activeRightPointerId = e.pointerId; rightZone.setPointerCapture(e.pointerId); 
+            const r = rightZone.getBoundingClientRect(); rightStartX = r.left + r.width / 2; rightStartY = r.top + r.height / 2;
+            handleRightMove(e);
+        });
+        function handleRightMove(e) {
+            if (!isRightDragging || e.pointerId !== activeRightPointerId || isGameOver || isGameClear) return;
+            let dx = e.clientX - rightStartX; const distance = Math.abs(dx);
+            if (distance > maxDistance) { dx = (dx / distance) * maxDistance; }
+            rightKnob.style.transform = `translate(${dx}px, 0px)`; 
+            input.rotate = dx / maxDistance; 
+        }
+        function handleRightEnd(e) {
+            if (!isRightDragging || e.pointerId !== activeRightPointerId) return;
+            isRightDragging = false; rightZone.releasePointerCapture(activeRightPointerId); activeRightPointerId = null;
+            rightKnob.style.transform = 'translate(0px, 0px)'; input.rotate = 0; 
+        }
+        rightZone.addEventListener('pointermove', handleRightMove); rightZone.addEventListener('pointerup', handleRightEnd); rightZone.addEventListener('pointercancel', handleRightEnd);
 
         const keys = { w:false, s:false, a:false, d:false, ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false };
         window.addEventListener('keydown', (e) => { initAudio(); if(e.key in keys) keys[e.key] = true; });
         window.addEventListener('keyup', (e) => { if(e.key in keys) keys[e.key] = false; });
 
         // ==========================================
-        // 8. 各オブジェクトの更新AI＆コンパス計算
+        // 8. ロジック更新・ミニマップ描画
         // ==========================================
         const GHOST_SPEED = 0.032; 
 
         function updateGhost() {
             if (isGameOver || isGameClear) return;
+            let minGhostDist = Infinity;
 
-            const dir = new THREE.Vector3();
-            dir.subVectors(camera.position, ghost.position);
-            dir.y = 0; dir.normalize();
+            ghosts.forEach((ghost, index) => {
+                const dir = new THREE.Vector3(); dir.subVectors(camera.position, ghost.position); dir.y = 0; dir.normalize();
+                const nextGhostX = ghost.position.x + dir.x * GHOST_SPEED; if (!checkCollision(nextGhostX, ghost.position.z)) ghost.position.x = nextGhostX;
+                const nextGhostZ = ghost.position.z + dir.z * GHOST_SPEED; if (!checkCollision(ghost.position.x, nextGhostZ)) ghost.position.z = nextGhostZ;
 
-            const nextGhostX = ghost.position.x + dir.x * GHOST_SPEED;
-            if (!checkCollision(nextGhostX, ghost.position.z)) ghost.position.x = nextGhostX;
-            const nextGhostZ = ghost.position.z + dir.z * GHOST_SPEED;
-            if (!checkCollision(ghost.position.x, nextGhostZ)) ghost.position.z = nextGhostZ;
+                ghost.position.y = 1.2 + Math.sin(Date.now() * 0.005 + index) * 0.1;
+                const distance = camera.position.distanceTo(ghost.position);
+                if (distance < minGhostDist) minGhostDist = distance; 
+                if (distance < 0.8) triggerGameOver();
+            });
 
-            ghost.position.y = 1.2 + Math.sin(Date.now() * 0.005) * 0.1;
-
-            const distance = camera.position.distanceTo(ghost.position);
-
-            const beatInterval = Math.max(220, Math.min(1500, distance * 45));
-            const now = Date.now();
-            if (now - lastBeatTime > beatInterval) {
-                playHeartbeat(distance);
-                lastBeatTime = now;
+            const overlay = document.getElementById('danger-overlay');
+            if (minGhostDist < 15) {
+                const intensity = Math.max(0, 1 - (minGhostDist / 15)); 
+                overlay.style.boxShadow = `inset 0 0 ${intensity * 120}px rgba(255, 0, 0, ${intensity * 0.8})`;
+                overlay.style.background = `rgba(255, 0, 0, ${intensity * 0.15})`;
+            } else {
+                overlay.style.boxShadow = 'inset 0 0 100px rgba(255, 0, 0, 0)'; overlay.style.background = 'transparent';
             }
 
-            if (distance < 0.8) triggerGameOver();
+            const beatInterval = Math.max(220, Math.min(1500, minGhostDist * 45));
+            const now = Date.now();
+            if (now - lastBeatTime > beatInterval) { playHeartbeat(minGhostDist); lastBeatTime = now; }
+        }
+
+        function spawnExtraGhosts() {
+            extraGhostSpawns.forEach(pos => {
+                const ghost = new THREE.Mesh(ghostGeo, ghostMat);
+                const ghostLight = new THREE.PointLight(0xff0022, 3, 7);
+                ghost.add(ghostLight);
+                scene.add(ghost);
+                ghost.position.set(pos.c * wallSize - halfWidth + wallSize / 2, 1.2, pos.r * wallSize - halfHeight + wallSize / 2);
+                ghosts.push(ghost);
+            });
+        }
+
+        function updateMapItem() {
+            if (hasMap || !mapItem) return;
+            mapItem.rotation.y += 0.04; mapItem.position.y = 0.9 + Math.sin(Date.now() * 0.004) * 0.05;
+            const dist = camera.position.distanceTo(mapItem.position);
+            if (dist < 0.8) {
+                scene.remove(mapItem); mapItem = null; hasMap = true; playMapUnlockSound();
+                document.getElementById('minimap-container').style.display = 'block'; 
+                spawnExtraGhosts();
+            }
+        }
+
+        function activateRadar() {
+            isRadarActive = true;
+            radarEndTime = Date.now() + 10000; 
+            document.getElementById('minimap-container').style.display = 'block';
+            document.getElementById('radar-ui').style.display = 'block';
+            playRadarSound();
+        }
+
+        function updateRadarItems() {
+            if (isGameOver || isGameClear) return;
+            const time = Date.now();
+            
+            for (let i = radarItems.length - 1; i >= 0; i--) {
+                const item = radarItems[i];
+                item.rotation.y += 0.05; item.position.y = 0.9 + Math.sin(time * 0.005 + i) * 0.05;
+                const dist = camera.position.distanceTo(item.position);
+                if (dist < 0.8) {
+                    scene.remove(item); radarItems.splice(i, 1);
+                    activateRadar();
+                }
+            }
+
+            if (isRadarActive) {
+                const timeLeft = radarEndTime - Date.now();
+                if (timeLeft <= 0) {
+                    isRadarActive = false;
+                    document.getElementById('radar-ui').style.display = 'none';
+                    if (!hasMap) document.getElementById('minimap-container').style.display = 'none';
+                } else {
+                    document.getElementById('radar-time').innerText = Math.ceil(timeLeft / 1000);
+                }
+            }
         }
 
         function updateGems() {
             if (isGameOver || isGameClear) return;
-
-            const time = Date.now();
-            let closestGem = null;
-            let minDist = Infinity;
+            const time = Date.now(); let closestGem = null; let minDist = Infinity;
 
             for (let i = gems.length - 1; i >= 0; i--) {
                 const gem = gems[i];
-
-                gem.rotation.y += 0.02;
-                gem.rotation.x += 0.01;
+                gem.rotation.y += 0.02; gem.rotation.x += 0.01;
                 gem.position.y = 0.9 + Math.sin(time * 0.003 + i) * 0.08;
 
                 const dist = camera.position.distanceTo(gem.position);
-                
-                if (dist < minDist) {
-                    minDist = dist;
-                    closestGem = gem;
-                }
+                if (dist < minDist) { minDist = dist; closestGem = gem; }
 
                 if (dist < 0.8) {
-                    scene.remove(gem);
-                    gems.splice(i, 1);
-                    
-                    collectedGems++;
+                    scene.remove(gem); gems.splice(i, 1); collectedGems++;
                     document.getElementById('gem-count').innerText = collectedGems;
                     playGemSound();
-
-                    if (collectedGems >= TOTAL_GEMS) {
-                        triggerGameClear();
-                        return;
-                    }
+                    if (collectedGems >= TOTAL_GEMS) { triggerGameClear(); return; }
                 }
             }
 
-            // 最寄り宝石コンパス計算
             const compassContainer = document.getElementById('compass-container');
             const compassArrow = document.getElementById('compass-arrow');
+            const compassDistance = document.getElementById('compass-distance'); // 📍 追加
 
             if (closestGem) {
                 compassContainer.style.display = 'flex';
-                const targetPos = closestGem.position.clone();
-                camera.worldToLocal(targetPos);
-                const angle = Math.atan2(targetPos.x, -targetPos.z);
-                const deg = (angle * 180) / Math.PI;
+                const targetPos = closestGem.position.clone(); camera.worldToLocal(targetPos);
+                const angle = Math.atan2(targetPos.x, -targetPos.z); const deg = (angle * 180) / Math.PI;
                 compassArrow.style.transform = `rotate(${deg}deg)`;
+                
+                // 📍 改修：3D空間上の直線距離を小数点第1位まで算出してUIへセット
+                compassDistance.innerText = `${minDist.toFixed(1)}m`;
             } else {
                 compassContainer.style.display = 'none';
             }
         }
 
-        function triggerGameOver() {
-            isGameOver = true;
-            document.getElementById('gameover-screen').style.display = 'block';
-            resetInputs();
+        function updateAutofocusMap() {
+            if (!hasMap) return; 
+            const playerC = Math.floor((camera.position.x + halfWidth) / wallSize);
+            const playerR = Math.floor((camera.position.z + halfHeight) / wallSize);
+            for (let dr = -2; dr <= 2; dr++) {
+                for (let dc = -2; dc <= 2; dc++) {
+                    const nr = playerR + dr; const nc = playerC + dc;
+                    if (nr >= 0 && nr < map.length && nc >= 0 && nc < map[0].length) visitedMap[nr][nc] = true;
+                }
+            }
         }
 
-        function triggerGameClear() {
-            isGameClear = true;
-            document.getElementById('clear-screen').style.display = 'block';
-            resetInputs();
+        const minimapCanvas = document.getElementById('minimap');
+        const minimapCtx = minimapCanvas.getContext('2d');
+        const cellSize = 120 / MAP_SIZE;
+
+        function drawMinimap() {
+            if (!hasMap && !isRadarActive) return; 
+            minimapCtx.clearRect(0, 0, 120, 120);
+            minimapCtx.fillStyle = '#080810'; minimapCtx.fillRect(0, 0, 120, 120);
+
+            for (let r = 0; r < map.length; r++) {
+                for (let c = 0; c < map[r].length; c++) {
+                    if (!isRadarActive && !visitedMap[r][c]) continue; 
+                    minimapCtx.fillStyle = (map[r][c] === 1) ? '#333344' : '#151522'; 
+                    minimapCtx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+                }
+            }
+
+            gems.forEach(gem => {
+                const gemC = Math.floor((gem.position.x + halfWidth) / wallSize);
+                const gemR = Math.floor((gem.position.z + halfHeight) / wallSize);
+                if (isRadarActive || visitedMap[gemR][gemC]) {
+                    minimapCtx.fillStyle = '#00ff88'; minimapCtx.beginPath();
+                    minimapCtx.arc(gemC * cellSize + cellSize / 2, gemR * cellSize + cellSize / 2, 2, 0, Math.PI * 2); minimapCtx.fill();
+                }
+            });
+
+            if (mapItem && isRadarActive) {
+                const mapC = Math.floor((mapItem.position.x + halfWidth) / wallSize);
+                const mapR = Math.floor((mapItem.position.z + halfHeight) / wallSize);
+                minimapCtx.fillStyle = '#00aaff'; minimapCtx.beginPath();
+                minimapCtx.arc(mapC * cellSize + cellSize / 2, mapR * cellSize + cellSize / 2, 2.5, 0, Math.PI * 2); minimapCtx.fill();
+            }
+
+            radarItems.forEach(item => {
+                const itemC = Math.floor((item.position.x + halfWidth) / wallSize);
+                const itemR = Math.floor((item.position.z + halfHeight) / wallSize);
+                if (isRadarActive) {
+                    minimapCtx.fillStyle = '#ffcc00'; minimapCtx.beginPath();
+                    minimapCtx.arc(itemC * cellSize + cellSize / 2, itemR * cellSize + cellSize / 2, 2, 0, Math.PI * 2); minimapCtx.fill();
+                }
+            });
+
+            ghosts.forEach(ghost => {
+                const ghostC = Math.floor((ghost.position.x + halfWidth) / wallSize);
+                const ghostR = Math.floor((ghost.position.z + halfHeight) / wallSize);
+                if (isRadarActive) {
+                    minimapCtx.fillStyle = '#ff1133'; minimapCtx.beginPath();
+                    minimapCtx.arc(ghostC * cellSize + cellSize / 2, ghostR * cellSize + cellSize / 2, 2.5, 0, Math.PI * 2); minimapCtx.fill();
+                }
+            });
+
+            const playerC = Math.floor((camera.position.x + halfWidth) / wallSize);
+            const playerR = Math.floor((camera.position.z + halfHeight) / wallSize);
+            minimapCtx.fillStyle = '#00ffff'; minimapCtx.beginPath();
+            minimapCtx.arc(playerC * cellSize + cellSize / 2, playerR * cellSize + cellSize / 2, 3, 0, Math.PI * 2); minimapCtx.fill();
         }
 
-        function resetInputs() {
-            input.forward = 0; input.rotate = 0;
-            knob.style.transform = 'translate(0px, 0px)';
+        function triggerGameOver() { isGameOver = true; document.getElementById('gameover-screen').style.display = 'block'; resetInputs(); }
+        function triggerGameClear() { isGameClear = true; document.getElementById('clear-screen').style.display = 'block'; resetInputs(); }
+        function resetInputs() { 
+            input.forward = 0; input.sideways = 0; input.rotate = 0; 
+            leftKnob.style.transform = 'translate(0px, 0px)'; rightKnob.style.transform = 'translate(0px, 0px)'; 
+            isRadarActive = false; document.getElementById('radar-ui').style.display = 'none';
         }
 
         // ==========================================
@@ -563,35 +764,43 @@
             requestAnimationFrame(animate);
 
             if (!isGameOver && !isGameClear) {
-                if (!isDragging) {
+                if (!isLeftDragging && !isRightDragging) {
                     input.forward = (keys.w || keys.ArrowUp) ? 1 : (keys.s || keys.ArrowDown) ? -1 : 0;
                     input.rotate = (keys.d || keys.ArrowRight) ? 1 : (keys.a || keys.ArrowLeft) ? -1 : 0;
+                    input.sideways = 0;
                 }
 
                 camera.rotation.y -= input.rotate * MAX_ROTATE_SPEED;
 
-                const direction = new THREE.Vector3();
-                camera.getWorldDirection(direction);
+                const direction = new THREE.Vector3(); 
+                camera.getWorldDirection(direction); 
                 direction.y = 0; direction.normalize();
 
-                const moveAmt = input.forward * MAX_MOVE_SPEED;
+                const right = new THREE.Vector3();
+                right.crossVectors(direction, camera.up).normalize();
 
-                const nextX = camera.position.x + direction.x * moveAmt;
+                const moveAmtF = input.forward * MAX_MOVE_SPEED;
+                const moveAmtS = input.sideways * MAX_MOVE_SPEED;
+
+                const nextX = camera.position.x + direction.x * moveAmtF + right.x * moveAmtS; 
                 if (!checkCollision(nextX, camera.position.z)) camera.position.x = nextX;
-                const nextZ = camera.position.z + direction.z * moveAmt;
+                
+                const nextZ = camera.position.z + direction.z * moveAmtF + right.z * moveAmtS; 
                 if (!checkCollision(camera.position.x, nextZ)) camera.position.z = nextZ;
 
                 updateGhost();
+                updateMapItem(); 
+                updateRadarItems(); 
                 updateGems(); 
+                updateAutofocusMap(); 
+                drawMinimap();        
             }
-
             renderer.render(scene, camera);
         }
         animate();
 
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
