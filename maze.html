@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Maze - Swipe Look Survival</title>
+    <title>3D Maze - Animated Gesture Guide</title>
     <style>
         body {
             margin: 0;
@@ -36,10 +36,8 @@
             flex-direction: column;
             gap: 5px;
         }
-        #gem-title {
-            font-size: 1.4rem;
-        }
-        /* レーダーUI */
+        #gem-title { font-size: 1.4rem; }
+        
         #radar-ui {
             display: none;
             color: #ffcc00;
@@ -49,7 +47,6 @@
             padding-top: 5px;
             margin-top: 2px;
         }
-        /* ナビゲーション矢印 & 距離表示 */
         #compass-container {
             display: flex;
             align-items: center;
@@ -75,6 +72,7 @@
             color: #00ffff;
             text-shadow: 0 0 10px #00ffff;
         }
+        
         /* ミニマップ */
         #minimap-container {
             display: none; 
@@ -91,26 +89,19 @@
             box-shadow: 0 0 15px rgba(0, 255, 200, 0.2);
             pointer-events: none;
         }
-        #minimap {
-            width: 120px;
-            height: 120px;
-            display: block;
-        }
+        #minimap { width: 120px; height: 120px; display: block; }
+
         /* お化けの接近インジケータ */
         #danger-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            z-index: 5;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 5;
             box-shadow: inset 0 0 100px rgba(255, 0, 0, 0);
             background: rgba(255, 0, 0, 0);
             transition: box-shadow 0.1s, background 0.1s;
         }
         
-        /* 移動用アナログスティック（左側のみ維持） */
+        /* 移動用アナログスティック */
         .joystick-zone {
             position: absolute;
             bottom: 50px;
@@ -128,51 +119,83 @@
             touch-action: none; 
         }
         #joystick-left { left: 40px; }
-
         .joystick-knob {
-            width: 50px;
-            height: 50px;
+            width: 50px; height: 50px;
             background: rgba(255, 255, 255, 0.6);
             border-radius: 50%;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             pointer-events: none; 
         }
 
-        /* 画面オーバーレイ */
-        .screen-overlay {
+        /* 📍 改修：アニメーション付きスワイプガイドUI */
+        #swipe-guide {
             display: none;
             position: absolute;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            z-index: 100;
-            text-align: center;
-            padding-top: 35vh;
-            box-sizing: border-box;
-        }
-        .screen-overlay h1 {
-            font-size: 3.5rem;
-            margin: 0 0 10px 0;
-            letter-spacing: 4px;
-        }
-        .screen-overlay p {
-            color: #fff;
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-        }
-        .screen-overlay button {
-            padding: 12px 35px;
-            font-size: 1.1rem;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
+            right: 20%;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 1rem;
             font-weight: bold;
-            transition: 0.2s;
+            pointer-events: none;
+            z-index: 8;
+            text-align: center;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+            background: rgba(0, 0, 0, 0.55);
+            padding: 15px 25px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.15);
+            backdrop-filter: blur(2px);
         }
-        #gameover-screen { background: rgba(15, 0, 0, 0.85); color: #ff3333; }
+        /* 指が実際にスワイプしているように動くアニメーション */
+        #swipe-hand-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 10px;
+            transform-origin: center bottom;
+            animation: swipeHandAction 2s infinite ease-in-out;
+        }
+        @keyframes swipeHandAction {
+            0% { transform: translateX(50px) rotate(-10deg) scale(0.9); opacity: 0; }
+            15% { transform: translateX(50px) rotate(-20deg) scale(1.1); opacity: 1; } /* 画面をタップ */
+            45% { transform: translateX(-50px) rotate(-20deg) scale(1.1); opacity: 1; } /* 左へスワイプ */
+            65% { transform: translateX(-50px) rotate(-10deg) scale(0.9); opacity: 0; } /* 指を離す */
+            100% { transform: translateX(50px) rotate(-10deg) scale(0.9); opacity: 0; } /* スタート位置へ戻る */
+        }
+
+        /* 各種画面オーバーレイ */
+        .screen-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 100; text-align: center; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .screen-overlay h1 { font-size: 3.2rem; margin: 0 0 20px 0; letter-spacing: 4px; }
+        .screen-overlay p { color: #fff; font-size: 1.2rem; margin: 0 0 30px 0; }
+        .screen-overlay button {
+            padding: 15px 45px; font-size: 1.2rem; color: white; border: none; border-radius: 50px;
+            cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        
+        /* START画面 */
+        #start-screen { background: rgba(6, 6, 14, 0.96); color: #00ffff; }
+        #start-screen h1 { text-shadow: 0 0 20px #00ffff; }
+        #start-screen button { background: #00aaaa; box-shadow: 0 4px 20px rgba(0,170,170,0.5); }
+        #start-screen button:active { transform: scale(0.95); }
+        .tutorial-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            padding: 20px; border-radius: 12px; margin-bottom: 35px;
+            text-align: left; max-width: 320px; box-sizing: border-box;
+        }
+        .tutorial-item { margin: 12px 0; color: #e0e0e0; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; }
+        .tutorial-icon { font-size: 1.5rem; width: 30px; text-align: center; }
+
+        #gameover-screen { display: none; background: rgba(15, 0, 0, 0.9); color: #ff3333; }
         #gameover-screen h1 { text-shadow: 0 0 15px #ff0000; }
         #gameover-screen button { background: #ff2222; box-shadow: 0 4px 15px rgba(255,0,0,0.4); }
-        #clear-screen { background: rgba(0, 15, 5, 0.85); color: #00ff88; }
+        
+        #clear-screen { display: none; background: rgba(0, 15, 5, 0.9); color: #00ff88; }
         #clear-screen h1 { text-shadow: 0 0 15px #00ff88; }
         #clear-screen button { background: #00cc77; box-shadow: 0 4px 15px rgba(0,255,136,0.4); }
     </style>
@@ -200,6 +223,33 @@
         <div id="joystick-left-knob" class="joystick-knob"></div>
     </div>
 
+    <div id="swipe-guide">
+        <span id="swipe-hand-icon">☝️</span>
+        画面スワイプで<br>視点をまわす
+    </div>
+
+    <div id="start-screen" class="screen-overlay">
+        <h1>3D MAZE SURVIVAL</h1>
+        <p>暗闇の迷路から宝石を回収せよ</p>
+        
+        <div class="tutorial-box">
+            <div class="tutorial-item">
+                <span class="tutorial-icon">🕹️</span>
+                <span><strong>左スティック:</strong> 前後左右に移動</span>
+            </div>
+            <div class="tutorial-item">
+                <span class="tutorial-icon">📱</span>
+                <span><strong>画面の右半分をスワイプ:</strong> 視点移動</span>
+            </div>
+            <div class="tutorial-item">
+                <span class="tutorial-icon">👻</span>
+                <span><strong>心音の警告:</strong> お化けが近づくと赤くなります</span>
+            </div>
+        </div>
+        
+        <button onclick="startGame()">探索を開始する</button>
+    </div>
+
     <div id="gameover-screen" class="screen-overlay">
         <h1>GAME OVER</h1>
         <p>お化けに魂を奪われた...</p>
@@ -214,8 +264,9 @@
 
     <script>
         // ==========================================
-        // 1. 3D空間・ライトの設定
+        // 1. 状態フラグと3D空間・ライトの設定
         // ==========================================
+        let isGameStarted = false; 
         let isGameOver = false;
         let isGameClear = false;
         let hasMap = false; 
@@ -493,9 +544,9 @@
         let activeLeftPointerId = null;
 
         leftZone.addEventListener('pointerdown', (e) => {
-            if (isGameOver || isGameClear) return;
-            e.stopPropagation(); // 📍 スワイプ視点移動の誤爆を防ぐ
-            initAudio(); isLeftDragging = true; activeLeftPointerId = e.pointerId; leftZone.setPointerCapture(e.pointerId); 
+            if (!isGameStarted || isGameOver || isGameClear) return;
+            e.stopPropagation(); 
+            isLeftDragging = true; activeLeftPointerId = e.pointerId; leftZone.setPointerCapture(e.pointerId); 
             const r = leftZone.getBoundingClientRect(); leftStartX = r.left + r.width / 2; leftStartY = r.top + r.height / 2;
             handleLeftMove(e);
         });
@@ -513,18 +564,19 @@
         }
         leftZone.addEventListener('pointermove', handleLeftMove); leftZone.addEventListener('pointerup', handleLeftEnd); leftZone.addEventListener('pointercancel', handleLeftEnd);
 
-        // --- 📍 改修：画面スワイプによる視点移動システム ---
+        // --- 画面スワイプによる視点移動システム ---
         let isSwipeRotating = false;
         let lastSwipeX = 0;
         let activeSwipePointerId = null;
-        const SWIPE_SENSITIVITY = 0.005; // 視点移動の感度（数値を上げると速くなります）
+        const SWIPE_SENSITIVITY = 0.005; 
 
         window.addEventListener('pointerdown', (e) => {
-            if (isGameOver || isGameClear) return;
-            // UIや左スティック上でのタッチでなければ、視点移動を開始
+            if (!isGameStarted || isGameOver || isGameClear) return;
             if (e.target.closest('#joystick-left') || e.target.closest('#ui-layer') || e.target.closest('.screen-overlay')) return;
             
-            initAudio();
+            // 📍 触られたら即座にアニメーションガイドを消去
+            dismissSwipeGuide();
+
             isSwipeRotating = true;
             lastSwipeX = e.clientX;
             activeSwipePointerId = e.pointerId;
@@ -532,8 +584,6 @@
 
         window.addEventListener('pointermove', (e) => {
             if (!isSwipeRotating || e.pointerId !== activeSwipePointerId || isGameOver || isGameClear) return;
-            
-            // 前回のフレームからの横移動量を計算し、カメラの角度を直接変化させる
             const deltaX = e.clientX - lastSwipeX;
             camera.rotation.y -= deltaX * SWIPE_SENSITIVITY;
             lastSwipeX = e.clientX;
@@ -548,13 +598,43 @@
         window.addEventListener('pointerup', handleSwipeEnd);
         window.addEventListener('pointercancel', handleSwipeEnd);
 
-        // キーボード操作用の枠組み
+        // キーボード操作用
         const keys = { w:false, s:false, a:false, d:false, ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false };
-        window.addEventListener('keydown', (e) => { initAudio(); if(e.key in keys) keys[e.key] = true; });
+        window.addEventListener('keydown', (e) => { if(isGameStarted && e.key in keys) keys[e.key] = true; });
         window.addEventListener('keyup', (e) => { if(e.key in keys) keys[e.key] = false; });
 
         // ==========================================
-        // 8. ロジック更新・ミニマップ描画
+        // 8. ゲーム開始・チュートリアル管理ロジック
+        // ==========================================
+        function startGame() {
+            initAudio();
+            isGameStarted = true;
+            document.getElementById('start-screen').style.display = 'none';
+            
+            // プレイ画面になったら、指のスワイプアニメーションを開始
+            const guide = document.getElementById('swipe-guide');
+            guide.style.display = 'block';
+            
+            // 操作しなくても5秒で自然消滅
+            setTimeout(() => {
+                dismissSwipeGuide();
+            }, 5000);
+        }
+
+        function dismissSwipeGuide() {
+            const guide = document.getElementById('swipe-guide');
+            if (guide && guide.style.display !== 'none' && !guide.classList.contains('fading')) {
+                guide.classList.add('fading');
+                guide.style.transition = 'opacity 0.6s ease';
+                guide.style.opacity = '0';
+                setTimeout(() => {
+                    guide.style.display = 'none';
+                }, 600);
+            }
+        }
+
+        // ==========================================
+        // 9. ロジック更新・ミニマップ描画
         // ==========================================
         const GHOST_SPEED = 0.032; 
 
@@ -753,12 +833,12 @@
         function resetInputs() { 
             input.forward = 0; input.sideways = 0; input.rotate = 0; 
             leftKnob.style.transform = 'translate(0px, 0px)'; 
-            isRotating = false; activeSwipePointerId = null;
+            isSwipeRotating = false; activeSwipePointerId = null;
             isRadarActive = false; document.getElementById('radar-ui').style.display = 'none';
         }
 
         // ==========================================
-        // 9. ゲームループ
+        // 10. ゲームループ
         // ==========================================
         const MAX_MOVE_SPEED = 0.08;
         const MAX_ROTATE_SPEED = 0.04;
@@ -766,8 +846,7 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            if (!isGameOver && !isGameClear) {
-                // キーボードでの視点旋回は維持 (A, D または 矢印キー)
+            if (isGameStarted && !isGameOver && !isGameClear) {
                 if (!isLeftDragging && !isSwipeRotating) {
                     input.forward = (keys.w || keys.ArrowUp) ? 1 : (keys.s || keys.ArrowDown) ? -1 : 0;
                     input.rotate = (keys.d || keys.ArrowRight) ? 1 : (keys.a || keys.ArrowLeft) ? -1 : 0;
@@ -776,7 +855,6 @@
                     input.rotate = 0; 
                 }
 
-                // キーボードによる回転
                 camera.rotation.y -= input.rotate * MAX_ROTATE_SPEED;
 
                 const direction = new THREE.Vector3(); 
