@@ -265,6 +265,45 @@ h1{
     }
 }
 
+/*お知らせ*/
+.notice-box{
+    width:calc(100% - 40px);
+    max-width:900px;
+    margin:20px auto;
+    padding:20px;
+    border-radius:20px;
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.1);
+    backdrop-filter:blur(10px);
+}
+
+.notice-title{
+    font-size:22px;
+    font-weight:bold;
+    margin-bottom:15px;
+}
+
+.notice-item{
+    padding:12px 0;
+    border-bottom:1px solid rgba(255,255,255,0.1);
+}
+
+.notice-item:last-child{
+    border-bottom:none;
+}
+
+.notice-date{
+    color:#60a5fa;
+    font-size:14px;
+    font-weight:bold;
+}
+
+.notice-text{
+    margin-top:6px;
+    line-height:1.6;
+    opacity:.9;
+}
+
 </style>
 </head>
 
@@ -277,6 +316,23 @@ h1{
         好きなゲームをすぐ起動
     </div>
 </header>
+
+<div class="notice-box">
+
+    <div class="notice-title">
+        📢 お知らせ
+    </div>
+
+    <div class="notice-item">
+        <div class="notice-date">
+            2026/06/06
+        </div>
+        <div class="notice-text">
+            GAME PORTALにお知らせを追加しました。
+        </div>
+    </div>
+
+</div>
 
 <div class="container">
 
