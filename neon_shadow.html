@@ -3,400 +3,499 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Shadow Puzzle - Updated</title>
+    <title>Neon Shadow Puzzle - Dual Physics Fix</title>
     <style>
-        body { 
-            margin: 0; 
-            padding: 0;
-            background: #050510; 
-            color: #fff; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow: hidden; 
-        }
-        #game-container {
-            position: relative;
-            width: 100%;
-            max-width: 800px;
-            aspect-ratio: 4 / 3; 
-        }
-        canvas { 
-            width: 100%;
-            height: 100%;
-            background: #0a0a1a;
-            box-shadow: 0 0 40px rgba(0, 255, 255, 0.1);
-            border: 1px solid #1a1a3a;
-            border-radius: 8px;
-            cursor: crosshair;
-            display: block;
-            touch-action: none; /* スマホでのブラウザデフォルト操作を無効化 */
-        }
-        #ui { 
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            pointer-events: none; 
-        }
-        h1 { margin: 0; font-size: 20px; color: #0ff; text-shadow: 0 0 10px #0ff; }
-        p { margin: 5px 0 0 0; font-size: 12px; color: #aaa; }
-        #reset-btn {
-            position: absolute;
-            bottom: -50px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 10px 25px;
-            font-size: 14px;
-            background: transparent;
-            color: #f0f;
-            border: 1px solid #f0f;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        #reset-btn:active { background: #f0f; color: #fff; }
+        body { margin: 0; padding: 0; background: #050510; color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        #game-container { position: relative; width: 100%; max-width: 800px; aspect-ratio: 4 / 3; }
+        canvas { width: 100%; height: 100%; background: #0a0a1a; box-shadow: 0 0 40px rgba(0, 255, 255, 0.1); border: 1px solid #1a1a3a; border-radius: 8px; cursor: crosshair; display: block; touch-action: none; }
+        #ui { position: absolute; top: 15px; left: 15px; pointer-events: none; }
+        #level-info { position: absolute; top: 15px; right: 20px; text-align: right; pointer-events: none; }
+        h1, h2 { margin: 0; font-size: 20px; color: #0ff; text-shadow: 0 0 10px #0ff; }
+        p { margin: 5px 0 0 0; font-size: 13px; color: #aaa; max-width: 400px; }
+        .star-count { font-size: 20px; color: #ffeb3b; font-weight: bold; text-shadow: 0 0 10px #ffeb3b; }
+        
+        #button-container { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 20px; pointer-events: none; z-index: 100; }
+        .btn { pointer-events: auto; padding: 10px 20px; font-size: 14px; background: rgba(5, 5, 20, 0.8); font-weight: bold; color: #0ff; border: 2px solid #0ff; border-radius: 20px; cursor: pointer; transition: all 0.2s; box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); }
+        .btn:active { background: #0ff; color: #000; }
+        #retry-btn { color: #f0f; border-color: #f0f; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3); }
+        #retry-btn:active { background: #f0f; color: #fff; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 </head>
 <body>
     <div id="game-container">
         <div id="ui">
-            <h1>NEON SHADOW (beta版)</h1>
-            <p>光を動かし、輝く影の道を繋げ</p>
+            <h1 id="stage-title">STAGE 1</h1>
+            <p id="stage-desc">説明文</p>
+        </div>
+        <div id="level-info">
+            <h2>STARS</h2>
+            <div class="star-count" id="star-display">0 / 0</div>
         </div>
         <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div id="button-container">
+            <button class="btn" onclick="prevLevel()">◀ 前へ</button>
+            <button id="retry-btn" class="btn" onclick="resetBall()">リトライ</button>
+            <button id="next-btn" class="btn" onclick="nextLevel()">次へ ▶</button>
+        </div>
     </div>
-    <button id="reset-btn" onclick="resetGame()">強制リトライ</button>
 
     <script>
-        const engine = Matter.Engine.create();
-        const { Composite, Bodies, Body, Vector } = Matter;
+        const { Engine, World, Bodies, Body, Vector, Composite, Events } = Matter;
+        const engine = Engine.create();
+        engine.gravity.y = 1.0;
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        engine.gravity.y = 1.0; 
-
-        let gameState = 'playing'; 
-        let clearAnimationTime = 0;
-
-        // --- 影の斜線パターン（ハッチング）を作成 ---
-        // これにより、単なる暗闇ではなく「影の領域」であることが直感的にわかります
-        const patternCanvas = document.createElement('canvas');
-        patternCanvas.width = 16;
-        patternCanvas.height = 16;
-        const pCtx = patternCanvas.getContext('2d');
-        pCtx.fillStyle = 'rgba(25, 10, 45, 0.7)'; // 影のベース色
-        pCtx.fillRect(0, 0, 16, 16);
-        pCtx.strokeStyle = 'rgba(120, 50, 180, 0.4)'; // 斜線の色
-        pCtx.lineWidth = 2;
-        pCtx.beginPath();
-        pCtx.moveTo(-2, 18);
-        pCtx.lineTo(18, -2);
-        pCtx.stroke();
+        // 影のハッチングパターン
+        const pCanvas = document.createElement('canvas'); pCanvas.width = 16; pCanvas.height = 16;
+        const pCtx = pCanvas.getContext('2d');
+        pCtx.fillStyle = 'rgba(25, 10, 45, 0.7)'; pCtx.fillRect(0, 0, 16, 16);
+        pCtx.strokeStyle = 'rgba(120, 50, 180, 0.4)'; pCtx.lineWidth = 2; pCtx.beginPath(); pCtx.moveTo(-2, 18); pCtx.lineTo(18, -2); pCtx.stroke();
         let shadowPattern;
 
-        // --- ステージ構成 ---
-        const startPlatform = Bodies.rectangle(120, 180, 120, 10, { isStatic: true });
-        
-        const obstacles = [
-            { x: 350, y: 320, w: 80, h: 80 },
-            { x: 620, y: 450, w: 100, h: 40 }
-        ];
-        obstacles.forEach(obs => {
-            const body = Bodies.rectangle(obs.x, obs.y, obs.w, obs.h, { isStatic: true });
-            Composite.add(engine.world, body);
-        });
-
-        const shadowFloors = obstacles.map(() => {
-            const floor = Bodies.rectangle(-1000, -1000, 3000, 20, { isStatic: true, friction: 0.05 });
-            Composite.add(engine.world, floor);
-            return floor;
-        });
-
-        Composite.add(engine.world, startPlatform);
-        const goal = { x: 700, y: 530, radius: 25 };
-
-        // ボール生成・リセット処理
-        window.ball = null;
-        window.resetGame = function() {
-            if (window.ball) Composite.remove(engine.world, window.ball);
-            window.ball = Bodies.circle(120, 100, 12, { restitution: 0.3, friction: 0.02 });
-            Composite.add(engine.world, window.ball);
-            gameState = 'playing';
-            clearAnimationTime = 0;
-        };
-        window.resetGame();
-
-        // --- 操作系 ---
+        let currentLevelIndex = 0;
+        let gameState = 'playing';
+        let clearTime = 0;
         let light = { x: 400, y: 150 };
+        let starsCollected = 0;
 
-        function updateLightPosition(clientX, clientY) {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            light.x = (clientX - rect.left) * scaleX;
-            light.y = (clientY - rect.top) * scaleY;
+        let startPlatform, goal, ball;
+        let obstacles = [];
+        let stars = [];
+
+        // 全10ステージデータ
+        const levels = [
+            {
+                title: "STAGE 1: Neon Practice",
+                desc: "基本の復習。光を動かして影の足場をゴールまで繋げよう。",
+                start: { x: 100, y: 150 }, goal: { x: 700, y: 500, radius: 25 },
+                obstacles: [ { x: 400, y: 350, w: 160, h: 30 } ],
+                stars: [ { x: 400, y: 220 } ]
+            },
+            {
+                title: "STAGE 2: Windmill Trick",
+                desc: "回転ブロック。影の足場が水平になるタイミングを狙って転がそう。",
+                start: { x: 100, y: 150 }, goal: { x: 700, y: 500, radius: 25 },
+                obstacles: [ { x: 400, y: 320, w: 200, h: 25, rotateSpeed: 0.015 } ],
+                stars: [ { x: 400, y: 160 }, { x: 400, y: 460 } ]
+            },
+            {
+                title: "STAGE 3: Crystal & Shadow",
+                desc: "水色のガラスは光を透過して影を作らないが、ボールは乗れる壁。",
+                start: { x: 100, y: 150 }, goal: { x: 700, y: 500, radius: 25 },
+                obstacles: [
+                    { x: 260, y: 250, w: 120, h: 20, isGlass: true },
+                    { x: 520, y: 380, w: 120, h: 60 }
+                ],
+                stars: [ { x: 260, y: 180 }, { x: 520, y: 250 } ]
+            },
+            {
+                title: "STAGE 4: Restricted Eclipse",
+                desc: "赤いエリアは光源禁止領域。マウスや指を中に入れられないぞ！",
+                start: { x: 120, y: 120 }, goal: { x: 680, y: 500, radius: 25 },
+                obstacles: [ { x: 380, y: 340, w: 160, h: 30 } ],
+                deadZones: [ { x: 280, y: 0, w: 200, h: 220 } ],
+                stars: [ { x: 380, y: 450 } ]
+            },
+            {
+                title: "STAGE 5: Shadow Disrupter",
+                desc: "オレンジの壁に影が当たると遮断される。壁の手前まで影を伸ばして利用しよう。",
+                start: { x: 100, y: 150 }, goal: { x: 700, y: 500, radius: 25 },
+                obstacles: [ { x: 300, y: 280, w: 120, h: 30 } ],
+                barriers: [ { p1: { x: 460, y: 100 }, p2: { x: 460, y: 450 } } ],
+                stars: [ { x: 300, y: 450 } ]
+            },
+            {
+                title: "STAGE 6: Forbidden Windmill",
+                desc: "移動制限＋回転ギミック。光源を動かせる狭い安全圏から操作しよう。",
+                start: { x: 100, y: 150 }, goal: { x: 700, y: 500, radius: 25 },
+                obstacles: [ { x: 450, y: 320, w: 180, h: 25, rotateSpeed: 0.02 } ],
+                deadZones: [ { x: 400, y: 0, w: 400, h: 200 } ],
+                stars: [ { x: 450, y: 460 }, { x: 230, y: 250 } ]
+            },
+            {
+                title: "STAGE 7: Invisible Delivery",
+                desc: "影遮断壁を避けつつ、右側にあるガラスの床へボールを上手く送り届けよう。",
+                start: { x: 100, y: 150 }, goal: { x: 720, y: 480, radius: 25 },
+                obstacles: [
+                    { x: 280, y: 300, w: 100, h: 30 },
+                    { x: 550, y: 400, w: 150, h: 20, isGlass: true }
+                ],
+                barriers: [ { p1: { x: 400, y: 260 }, p2: { x: 700, y: 260 } } ],
+                stars: [ { x: 280, y: 450 }, { x: 550, y: 300 } ]
+            },
+            {
+                title: "STAGE 8: Forbidden Chamber",
+                desc: "上下を光源禁止領域に挟まれた部屋。精密な横移動が試される。",
+                start: { x: 100, y: 200 }, goal: { x: 700, y: 420, radius: 25 },
+                obstacles: [
+                    { x: 300, y: 320, w: 100, h: 40 },
+                    { x: 520, y: 320, w: 100, h: 40 }
+                ],
+                deadZones: [
+                    { x: 0, y: 0, w: 800, h: 120 },
+                    { x: 200, y: 460, w: 400, h: 140 }
+                ],
+                stars: [ { x: 300, y: 200 }, { x: 520, y: 200 } ]
+            },
+            {
+                title: "STAGE 9: Laser Crossroads",
+                desc: "十字に交差する影遮断壁。遮られない絶妙な光の角度を見つけ出せ。",
+                start: { x: 100, y: 120 }, goal: { x: 700, y: 520, radius: 25 },
+                obstacles: [
+                    { x: 250, y: 250, w: 100, h: 30 },
+                    { x: 500, y: 250, w: 100, h: 30 }
+                ],
+                barriers: [
+                    { p1: { x: 380, y: 100 }, p2: { x: 380, y: 500 } },
+                    { p1: { x: 200, y: 350 }, p2: { x: 600, y: 350 } }
+                ],
+                stars: [ { x: 250, y: 450 }, { x: 500, y: 450 } ]
+            },
+            {
+                title: "STAGE 10: Neon Grand Finale",
+                desc: "最終試練。全ギミックが融合した超高難度ステージを突破せよ！",
+                start: { x: 80, y: 130 }, goal: { x: 730, y: 510, radius: 25 },
+                obstacles: [
+                    { x: 220, y: 260, w: 130, h: 25, rotateSpeed: -0.015 },
+                    { x: 450, y: 360, w: 100, h: 100 },
+                    { x: 650, y: 240, w: 120, h: 20, isGlass: true }
+                ],
+                deadZones: [ { x: 350, y: 0, w: 200, h: 160 } ],
+                barriers: [ { p1: { x: 450, y: 150 }, p2: { x: 750, y: 150 } } ],
+                stars: [ { x: 220, y: 450 }, { x: 450, y: 200 }, { x: 650, y: 140 } ]
+            }
+        ];
+
+        // 線分交差判定ヘルパー
+        function getIntersection(a, b, c, d) {
+            const denominator = (d.y - c.y) * (b.x - a.x) - (d.x - c.x) * (b.y - a.y);
+            if (denominator === 0) return null;
+            let ua = ((d.x - c.x) * (a.y - c.y) - (d.y - c.y) * (a.x - c.x)) / denominator;
+            let ub = ((b.x - a.x) * (a.y - c.y) - (b.y - a.y) * (a.x - c.x)) / denominator;
+            if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
+                return { x: a.x + ua * (b.x - a.x), y: a.y + ua * (b.y - a.y) };
+            }
+            return null;
         }
 
-        canvas.addEventListener('mousemove', e => updateLightPosition(e.clientX, e.clientY));
-        canvas.addEventListener('touchmove', e => {
-            if(e.touches.length > 0) {
-                updateLightPosition(e.touches[0].clientX, e.touches[0].clientY);
-                e.preventDefault(); 
-            }
-        }, { passive: false });
+        function loadLevel(index) {
+            Composite.clear(engine.world, false); 
+            obstacles = []; stars = []; starsCollected = 0;
+            gameState = 'playing';
 
-        // クリア画面時のタップ（クリック）で再スタート
-        canvas.addEventListener('pointerdown', e => {
-            if (gameState === 'cleared' && clearAnimationTime > 1.5) {
-                window.resetGame();
-            }
+            const data = levels[index];
+            document.getElementById('stage-title').innerText = data.title;
+            document.getElementById('stage-desc').innerText = data.desc;
+            updateStarUI(data);
+
+            startPlatform = Bodies.rectangle(data.start.x, data.start.y + 20, 100, 10, { isStatic: true });
+            Composite.add(engine.world, startPlatform);
+            goal = data.goal;
+
+            data.obstacles.forEach(obsData => {
+                const body = Bodies.rectangle(obsData.x, obsData.y, obsData.w, obsData.h, { isStatic: true });
+                Composite.add(engine.world, body);
+
+                obstacles.push({
+                    body: body, w: obsData.w, h: obsData.h,
+                    rotateSpeed: obsData.rotateSpeed || 0,
+                    isGlass: obsData.isGlass || false,
+                    shadowFloors: [] // 【解決】複数の足場を格納する配列に変更
+                });
+            });
+
+            data.stars.forEach(sData => {
+                const starBody = Bodies.circle(sData.x, sData.y, 15, { isStatic: true, isSensor: true, label: 'star' });
+                Composite.add(engine.world, starBody);
+                stars.push({ body: starBody, collected: false });
+            });
+
+            resetBall();
+        }
+
+        function resetBall() {
+            if (ball) Composite.remove(engine.world, ball);
+            const data = levels[currentLevelIndex];
+            ball = Bodies.circle(data.start.x, data.start.y - 10, 12, { restitution: 0.3, friction: 0.02, label: 'ball' });
+            Composite.add(engine.world, ball);
+            if(gameState === 'cleared') loadLevel(currentLevelIndex); 
+        }
+
+        function nextLevel() { currentLevelIndex = (currentLevelIndex + 1) % levels.length; loadLevel(currentLevelIndex); }
+        function prevLevel() { currentLevelIndex = (currentLevelIndex - 1 + levels.length) % levels.length; loadLevel(currentLevelIndex); }
+
+        function updateStarUI(data) { document.getElementById('star-display').innerText = `${starsCollected} / ${data.stars.length}`; }
+
+        Events.on(engine, 'collisionStart', function(event) {
+            event.pairs.forEach(pair => {
+                const bodyA = pair.bodyA; const bodyB = pair.bodyB;
+                if (bodyA.label === 'ball' && bodyB.label === 'star') collectStar(bodyB);
+                else if (bodyB.label === 'ball' && bodyA.label === 'star') collectStar(bodyA);
+            });
         });
 
-        // 発光エフェクト描画用関数
-        function drawNeonGlow(drawFunc, color, blurParams) {
-            ctx.save();
-            blurParams.forEach(blur => {
-                ctx.shadowBlur = blur;
-                ctx.shadowColor = color;
-                drawFunc();
-            });
-            ctx.restore();
+        function collectStar(starBody) {
+            const starObj = stars.find(s => s.body === starBody);
+            if (starObj && !starObj.collected) {
+                starObj.collected = true; starsCollected++;
+                Composite.remove(engine.world, starBody);
+                updateStarUI(levels[currentLevelIndex]);
+            }
         }
 
-        // --- メインループ ---
+        function updateLight(cx, cy) {
+            const rect = canvas.getBoundingClientRect();
+            let tx = (cx - rect.left) * (canvas.width / rect.width);
+            let ty = (cy - rect.top) * (canvas.height / rect.height);
+            
+            const data = levels[currentLevelIndex];
+            if (data.deadZones) {
+                data.deadZones.forEach(zone => {
+                    if (tx > zone.x && tx < zone.x + zone.w && ty > zone.y && ty < zone.y + zone.h) {
+                        let dl = tx - zone.x; let dr = (zone.x + zone.w) - tx;
+                        let dt = ty - zone.y; let db = (zone.y + zone.h) - ty;
+                        let min = Math.min(dl, dr, dt, db);
+                        if (min === dl) tx = zone.x;
+                        else if (min === dr) tx = zone.x + zone.w;
+                        else if (min === dt) ty = zone.y;
+                        else ty = zone.y + zone.h;
+                    }
+                });
+            }
+            light.x = tx; light.y = ty;
+        }
+        canvas.addEventListener('mousemove', e => updateLight(e.clientX, e.clientY));
+        canvas.addEventListener('touchmove', e => { if(e.touches.length > 0) { updateLight(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); } }, { passive: false });
+
+        function drawNeon(drawFunc, color, blurs) {
+            ctx.save(); blurs.forEach(b => { ctx.shadowBlur = b; ctx.shadowColor = color; drawFunc(); }); ctx.restore();
+        }
+
+        loadLevel(currentLevelIndex);
+
         function update() {
-            // パターンは初期化が完了したタイミングで生成
-            if (!shadowPattern) shadowPattern = ctx.createPattern(patternCanvas, 'repeat');
+            if (!shadowPattern) shadowPattern = ctx.createPattern(pCanvas, 'repeat');
+            const data = levels[currentLevelIndex];
+            const isGoalUnlocked = (starsCollected >= data.stars.length);
 
             if (gameState === 'playing') {
-                Matter.Engine.update(engine, 1000 / 60);
+                Engine.update(engine, 1000 / 60);
 
-                if (window.ball.position.y > 650 || window.ball.position.x < -50 || window.ball.position.x > 850) {
-                    window.resetGame();
+                if (ball.position.y > 650 || ball.position.x < -50 || ball.position.x > 850) resetBall();
+
+                if (isGoalUnlocked) {
+                    const distToGoal = Vector.magnitude(Vector.sub(ball.position, goal));
+                    if (distToGoal < goal.radius) {
+                        gameState = 'cleared'; clearTime = 0;
+                        Body.setStatic(ball, true);
+                    }
                 }
 
-                const distToGoal = Vector.magnitude(Vector.sub(window.ball.position, goal));
-                if (distToGoal < goal.radius) {
-                    gameState = 'cleared';
-                    Body.setStatic(window.ball, true); 
-                }
+                obstacles.forEach((obs) => {
+                    if (obs.rotateSpeed !== 0) Body.setAngle(obs.body, obs.body.angle + obs.rotateSpeed);
+                    
+                    // 【解決】古い影の物理ボディ（両側とも）を毎フレーム確実に削除
+                    if (obs.shadowFloors) {
+                        obs.shadowFloors.forEach(floor => Composite.remove(engine.world, floor));
+                    }
+                    obs.shadowFloors = [];
 
-                // 影の計算
-                obstacles.forEach((obs, index) => {
-                    const verts = [
-                        {x: obs.x - obs.w/2, y: obs.y - obs.h/2},
-                        {x: obs.x + obs.w/2, y: obs.y - obs.h/2},
-                        {x: obs.x + obs.w/2, y: obs.y + obs.h/2},
-                        {x: obs.x - obs.w/2, y: obs.y + obs.h/2}
-                    ];
+                    if (obs.isGlass) { obs.poly = null; return; }
 
+                    const verts = obs.body.vertices;
                     let edge1 = null, edge2 = null;
-                    for (let i = 0; i < 4; i++) {
-                        const v = verts[i];
-                        const dV = Vector.sub(v, light);
+                    for (let i = 0; i < verts.length; i++) {
+                        const v = verts[i]; const dV = Vector.sub(v, light);
                         let allPos = true, allNeg = true;
-                        for (let j = 0; j < 4; j++) {
+                        for (let j = 0; j < verts.length; j++) {
                             if (i === j) continue;
                             const u = verts[j];
-                            const dU = Vector.sub(u, light);
-                            const cross = dV.x * dU.y - dV.y * dU.x;
+                            const cross = dV.x * (u.y - light.y) - dV.y * (u.x - light.x);
                             if (cross < -0.01) allPos = false;
                             if (cross > 0.01) allNeg = false;
                         }
-                        if (allPos) edge1 = v;
-                        if (allNeg) edge2 = v;
+                        if (allPos) edge1 = v; if (allNeg) edge2 = v;
                     }
 
                     if (edge1 && edge2) {
-                        let dir1 = Vector.sub(edge1, light);
-                        let dir2 = Vector.sub(edge2, light);
+                        let dir1 = Vector.sub(edge1, light); let dir2 = Vector.sub(edge2, light);
                         if (Vector.magnitude(dir1) < 0.1) dir1 = {x: 0, y: 1};
                         if (Vector.magnitude(dir2) < 0.1) dir2 = {x: 0, y: 1};
 
-                        // 描画がねじれないようにX座標で並べ替え
                         const leftEdge = dir1.x < dir2.x ? edge1 : edge2;
                         const rightEdge = dir1.x < dir2.x ? edge2 : edge1;
 
-                        const topEdge = edge1.y < edge2.y ? edge1 : edge2;
-                        let dirTop = Vector.normalise(Vector.sub(topEdge, light));
-                        if (isNaN(dirTop.x)) dirTop = {x: 0, y: 1}; 
+                        let dirLeft = Vector.normalise(Vector.sub(leftEdge, light));
+                        let dirRight = Vector.normalise(Vector.sub(rightEdge, light));
 
-                        const angle = Math.atan2(dirTop.y, dirTop.x);
-                        const floorCenter = Vector.add(topEdge, Vector.mult(dirTop, 1500));
-                        Body.setPosition(shadowFloors[index], floorCenter);
-                        Body.setAngle(shadowFloors[index], angle);
+                        let maxDistLeft = 1500;
+                        let maxDistRight = 1500;
+                        
+                        let leftEnd = Vector.add(leftEdge, Vector.mult(dirLeft, maxDistLeft));
+                        let rightEnd = Vector.add(rightEdge, Vector.mult(dirRight, maxDistRight));
 
-                        // 描画用データ保存（領域用）
-                        obs.poly = [
-                            leftEdge, rightEdge,
-                            Vector.add(rightEdge, Vector.mult(Vector.normalise(Vector.sub(rightEdge, light)), 3000)),
-                            Vector.add(leftEdge, Vector.mult(Vector.normalise(Vector.sub(leftEdge, light)), 3000))
-                        ];
+                        // オレンジ壁との衝突による長さ制限（両方のラインで計算）
+                        if (data.barriers) {
+                            for (let b of data.barriers) {
+                                let ptL = getIntersection(leftEdge, leftEnd, b.p1, b.p2);
+                                if (ptL) {
+                                    let dist = Vector.magnitude(Vector.sub(ptL, leftEdge));
+                                    if (dist < maxDistLeft) maxDistLeft = dist;
+                                }
+                                let ptR = getIntersection(rightEdge, rightEnd, b.p1, b.p2);
+                                if (ptR) {
+                                    let dist = Vector.magnitude(Vector.sub(ptR, rightEdge));
+                                    if (dist < maxDistRight) maxDistRight = dist;
+                                }
+                            }
+                        }
 
-                        // ★追加: ボールが乗る「足場ライン」の情報を保存
-                        obs.floorStart = topEdge;
-                        obs.floorEnd = Vector.add(topEdge, Vector.mult(dirTop, 3000));
+                        leftEnd = Vector.add(leftEdge, Vector.mult(dirLeft, maxDistLeft));
+                        rightEnd = Vector.add(rightEdge, Vector.mult(dirRight, maxDistRight));
+
+                        // 【解決】左側のライン（上のライン等）の物理ボディ生成
+                        if (maxDistLeft > 5) {
+                            const centerLeft = Vector.add(leftEdge, Vector.mult(dirLeft, maxDistLeft / 2));
+                            const angleLeft = Math.atan2(dirLeft.y, dirLeft.x);
+                            const floorLeft = Bodies.rectangle(centerLeft.x, centerLeft.y, maxDistLeft, 16, { 
+                                isStatic: true, angle: angleLeft, friction: 0.05, label: 'shadowFloor'
+                            });
+                            Composite.add(engine.world, floorLeft);
+                            obs.shadowFloors.push(floorLeft);
+                        }
+
+                        // 【解決】右側のライン（下のライン等）の物理ボディ生成
+                        if (maxDistRight > 5) {
+                            const centerRight = Vector.add(rightEdge, Vector.mult(dirRight, maxDistRight / 2));
+                            const angleRight = Math.atan2(dirRight.y, dirRight.x);
+                            const floorRight = Bodies.rectangle(centerRight.x, centerRight.y, maxDistRight, 16, { 
+                                isStatic: true, angle: angleRight, friction: 0.05, label: 'shadowFloor'
+                            });
+                            Composite.add(engine.world, floorRight);
+                            obs.shadowFloors.push(floorRight);
+                        }
+
+                        obs.poly = [ leftEdge, rightEdge, rightEnd, leftEnd ];
+                        obs.floorLeftStart = leftEdge; obs.floorLeftEnd = leftEnd;
+                        obs.floorRightStart = rightEdge; obs.floorRightEnd = rightEnd;
                     } else {
-                        Body.setPosition(shadowFloors[index], {x: -2000, y: -2000});
                         obs.poly = null;
                     }
                 });
             } else if (gameState === 'cleared') {
-                clearAnimationTime += 0.05;
-                Body.setPosition(window.ball, {
-                    x: window.ball.position.x + (goal.x - window.ball.position.x) * 0.1,
-                    y: window.ball.position.y + (goal.y - window.ball.position.y) * 0.1
+                clearTime += 0.05;
+                Body.setPosition(ball, { x: ball.position.x + (goal.x - ball.position.x)*0.1, y: ball.position.y + (goal.y - ball.position.y)*0.1 });
+            }
+
+            ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 光源禁止領域
+            if (data.deadZones) {
+                data.deadZones.forEach(zone => {
+                    drawNeon(() => {
+                        ctx.fillStyle = 'rgba(255, 30, 30, 0.08)'; ctx.strokeStyle = '#f44'; ctx.lineWidth = 1.5;
+                        ctx.fillRect(zone.x, zone.y, zone.w, zone.h); ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+                        ctx.fillStyle = 'rgba(255, 50, 50, 0.4)'; ctx.font = '10px Arial'; ctx.textAlign = 'center';
+                        ctx.fillText('NO LIGHT AREA', zone.x + zone.w/2, zone.y + zone.h/2 + 4);
+                    }, '#f44', [5]);
                 });
             }
 
-            // --- 描画処理 ---
-            ctx.fillStyle = '#0a0a1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // 1. 影の描画（ハッチング領域と、足場ラインの強調）
+            // 2. 影と足場のハイライト（両方のラインをネオン描画）
             obstacles.forEach(obs => {
                 if (obs.poly) {
-                    // 影の領域を斜線パターンで塗りつぶし
                     if (shadowPattern) {
-                        ctx.fillStyle = shadowPattern;
-                        ctx.beginPath();
+                        ctx.fillStyle = shadowPattern; ctx.beginPath();
                         ctx.moveTo(obs.poly[0].x, obs.poly[0].y);
                         for(let i=1; i<obs.poly.length; i++) ctx.lineTo(obs.poly[i].x, obs.poly[i].y);
-                        ctx.closePath();
-                        ctx.fill();
+                        ctx.closePath(); ctx.fill();
                     }
-
-                    // ボールが乗る「上面の足場ライン」だけをネオンパープルで強く発光させる
-                    if (obs.floorStart && obs.floorEnd) {
-                        drawNeonGlow(() => {
-                            ctx.strokeStyle = '#ea80fc'; // ネオンパープル
-                            ctx.lineWidth = 4;
-                            ctx.lineCap = 'round';
-                            ctx.beginPath();
-                            ctx.moveTo(obs.floorStart.x, obs.floorStart.y);
-                            ctx.lineTo(obs.floorEnd.x, obs.floorEnd.y);
-                            ctx.stroke();
+                    if (obs.floorLeftStart && obs.floorLeftEnd) {
+                        drawNeon(() => {
+                            ctx.strokeStyle = '#ea80fc'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+                            ctx.beginPath(); ctx.moveTo(obs.floorLeftStart.x, obs.floorLeftStart.y); ctx.lineTo(obs.floorLeftEnd.x, obs.floorLeftEnd.y); ctx.stroke();
+                        }, '#ea80fc', [10, 20]);
+                    }
+                    if (obs.floorRightStart && obs.floorRightEnd) {
+                        drawNeon(() => {
+                            ctx.strokeStyle = '#ea80fc'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+                            ctx.beginPath(); ctx.moveTo(obs.floorRightStart.x, obs.floorRightStart.y); ctx.lineTo(obs.floorRightEnd.x, obs.floorRightEnd.y); ctx.stroke();
                         }, '#ea80fc', [10, 20]);
                     }
                 }
             });
 
-            // 2. スタート台
-            drawNeonGlow(() => {
-                ctx.fillStyle = '#111';
-                ctx.strokeStyle = '#f0f';
-                ctx.lineWidth = 2;
-                ctx.fillRect(startPlatform.position.x - 60, startPlatform.position.y - 5, 120, 10);
-                ctx.strokeRect(startPlatform.position.x - 60, startPlatform.position.y - 5, 120, 10);
-                ctx.fillStyle = '#f0f';
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('START', startPlatform.position.x, startPlatform.position.y + 20);
-            }, '#f0f', [10, 20]);
-
-            // 3. ゴール
-            drawNeonGlow(() => {
-                ctx.strokeStyle = '#0f0';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(goal.x, goal.y, goal.radius, 0, Math.PI*2);
-                ctx.stroke();
-                ctx.fillStyle = gameState === 'cleared' ? '#fff' : 'rgba(0, 255, 0, 0.2)';
-                ctx.fill();
-                ctx.fillStyle = '#0f0';
-                ctx.font = 'bold 14px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('GOAL', goal.x, goal.y - 35);
-            }, '#0f0', [15, 30]);
-
-            // 4. 障害物
-            obstacles.forEach(obs => {
-                drawNeonGlow(() => {
-                    ctx.fillStyle = '#000';
-                    ctx.strokeStyle = '#08f';
-                    ctx.lineWidth = 2;
-                    ctx.fillRect(obs.x - obs.w/2, obs.y - obs.h/2, obs.w, obs.h);
-                    ctx.strokeRect(obs.x - obs.w/2, obs.y - obs.h/2, obs.w, obs.h);
-                }, '#08f', [10]);
-            });
-
-            // 5. ボール
-            if (gameState === 'playing' || (gameState === 'cleared' && clearAnimationTime < 2)) {
-                const currentRadius = gameState === 'playing' ? 12 : Math.max(0, 12 - clearAnimationTime * 6);
-                drawNeonGlow(() => {
-                    ctx.fillStyle = '#fff';
-                    ctx.beginPath();
-                    ctx.arc(window.ball.position.x, window.ball.position.y, currentRadius, 0, Math.PI*2);
-                    ctx.fill();
-                }, '#0ff', [10, 20, 40]);
+            // 3. 影遮断壁
+            if (data.barriers) {
+                data.barriers.forEach(b => {
+                    drawNeon(() => {
+                        ctx.strokeStyle = '#ff9800'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+                        ctx.beginPath(); ctx.moveTo(b.p1.x, b.p1.y); ctx.lineTo(b.p2.x, b.p2.y); ctx.stroke();
+                        ctx.fillStyle = '#ff9800'; ctx.beginPath(); ctx.arc(b.p1.x, b.p1.y, 4, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(b.p2.x, b.p2.y, 4, 0, Math.PI*2); ctx.fill();
+                    }, '#ff9800', [10, 20]);
+                });
             }
 
-            // 6. 光源（太陽マーク）
-            const pulse = Math.sin(Date.now() / 150) * 5;
+            // 4. スタート台
+            drawNeon(() => {
+                ctx.fillStyle = '#111'; ctx.strokeStyle = '#f0f'; ctx.lineWidth = 2;
+                ctx.fillRect(data.start.x - 50, data.start.y + 15, 100, 10); ctx.strokeRect(data.start.x - 50, data.start.y + 15, 100, 10);
+            }, '#f0f', [10]);
 
-            drawNeonGlow(() => {
+            // 5. 障害物
+            obstacles.forEach(obs => {
+                const verts = obs.body.vertices; const isRot = obs.rotateSpeed !== 0;
+                const strokeColor = obs.isGlass ? '#0ff' : (isRot ? '#0f0' : '#08f');
+                drawNeon(() => {
+                    ctx.fillStyle = obs.isGlass ? 'rgba(0, 200, 255, 0.15)' : '#000';
+                    ctx.strokeStyle = strokeColor; ctx.lineWidth = 2; ctx.beginPath();
+                    ctx.moveTo(verts[0].x, verts[0].y); for(let i=1; i<verts.length; i++) ctx.lineTo(verts[i].x, verts[i].y);
+                    ctx.closePath(); ctx.fill(); ctx.stroke();
+                }, strokeColor, [10]);
+            });
 
-                // 放射状の光線
-                ctx.strokeStyle = '#ffd54f';
-                ctx.lineWidth = 3;
-
-                for(let i = 0; i < 12; i++) {
-                    const angle = (Math.PI * 2 / 12) * i;
-
-                    const inner = 14;
-                    const outer = 24 + pulse * 0.3;
-
-                    const x1 = light.x + Math.cos(angle) * inner;
-                    const y1 = light.y + Math.sin(angle) * inner;
-
-                    const x2 = light.x + Math.cos(angle) * outer;
-                    const y2 = light.y + Math.sin(angle) * outer;
-
-                    ctx.beginPath();
-                    ctx.moveTo(x1, y1);
-                    ctx.lineTo(x2, y2);
-                    ctx.stroke();
+            // 6. 星
+            stars.forEach(star => {
+                if (!star.collected) {
+                    const pos = star.body.position; const rot = Date.now() / 500;
+                    drawNeon(() => {
+                        ctx.fillStyle = '#ffeb3b'; ctx.beginPath();
+                        for(let i=0; i<5; i++){
+                            ctx.lineTo(pos.x + Math.cos(rot + i*Math.PI*0.4)*15, pos.y + Math.sin(rot + i*Math.PI*0.4)*15);
+                            ctx.lineTo(pos.x + Math.cos(rot + (i+0.5)*Math.PI*0.4)*7, pos.y + Math.sin(rot + (i+0.5)*Math.PI*0.4)*7);
+                        }
+                        ctx.closePath(); ctx.fill();
+                    }, '#ffeb3b', [10, 20]);
                 }
+            });
 
-                // 中心の太陽
-                ctx.fillStyle = '#fff8c4';
-                ctx.beginPath();
-                ctx.arc(light.x, light.y, 10, 0, Math.PI * 2);
-                ctx.fill();
+            // 7. ゴール
+            const goalColor = isGoalUnlocked ? '#0f0' : '#f00';
+            drawNeon(() => {
+                ctx.strokeStyle = goalColor; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(goal.x, goal.y, goal.radius, 0, Math.PI*2); ctx.stroke();
+                ctx.fillStyle = gameState === 'cleared' ? '#fff' : (isGoalUnlocked ? 'rgba(0, 255, 0, 0.2)' : 'rgba(255, 0, 0, 0.2)'); ctx.fill();
+                ctx.fillStyle = goalColor; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
+                ctx.fillText(isGoalUnlocked ? 'OPEN' : 'LOCKED', goal.x, goal.y - 35);
+            }, goalColor, [15, 30]);
 
-                ctx.strokeStyle = '#fff176';
-                ctx.lineWidth = 2;
-                ctx.stroke();
+            // 8. ボール
+            if (gameState === 'playing' || (gameState === 'cleared' && clearTime < 2)) {
+                const r = gameState === 'playing' ? 12 : Math.max(0, 12 - clearTime * 6);
+                drawNeon(() => { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.position.x, ball.position.y, r, 0, Math.PI*2); ctx.fill(); }, '#0ff', [10, 20, 40]);
+            }
 
-            }, '#ffeb3b', [20, 40 + pulse, 60 + pulse]);
+            // 9. 光源
+            drawNeon(() => { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(light.x, light.y, 8, 0, Math.PI*2); ctx.fill(); }, '#ffa', [20, 40 + Math.sin(Date.now() / 150)*5]);
 
-            // 7. クリア演出と再スタート案内
+            // 10. クリア演出
             if (gameState === 'cleared') {
-                ctx.fillStyle = 'rgba(5, 5, 16, 0.7)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                drawNeonGlow(() => {
-                    ctx.fillStyle = '#0ff';
-                    ctx.font = 'bold 54px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('STAGE CLEAR', canvas.width/2, canvas.height/2 - 10 + Math.sin(clearAnimationTime*5)*10);
-                }, '#0ff', [10, 30, 50]);
-
-                // タップでリスタートのアニメーション文字
-                if (clearAnimationTime > 1.5) {
-                    drawNeonGlow(() => {
-                        ctx.globalAlpha = Math.abs(Math.sin(clearAnimationTime * 3));
-                        ctx.fillStyle = '#fff';
-                        ctx.font = 'bold 20px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('- TAP TO RESTART -', canvas.width/2, canvas.height/2 + 50);
-                        ctx.globalAlpha = 1.0;
-                    }, '#fff', [10]);
-                }
+                ctx.fillStyle = 'rgba(5, 5, 16, 0.7)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                drawNeon(() => { ctx.fillStyle = '#0ff'; ctx.font = 'bold 54px Arial'; ctx.textAlign = 'center'; ctx.fillText('STAGE CLEAR!', canvas.width/2, canvas.height/2); }, '#0ff', [10, 30, 50]);
             }
 
             requestAnimationFrame(update);
