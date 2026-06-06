@@ -335,14 +335,44 @@
                 }, '#0ff', [10, 20, 40]);
             }
 
-            // 6. 光源
+            // 6. 光源（太陽マーク）
             const pulse = Math.sin(Date.now() / 150) * 5;
+
             drawNeonGlow(() => {
-                ctx.fillStyle = '#fff';
+
+                // 放射状の光線
+                ctx.strokeStyle = '#ffd54f';
+                ctx.lineWidth = 3;
+
+                for(let i = 0; i < 12; i++) {
+                    const angle = (Math.PI * 2 / 12) * i;
+
+                    const inner = 14;
+                    const outer = 24 + pulse * 0.3;
+
+                    const x1 = light.x + Math.cos(angle) * inner;
+                    const y1 = light.y + Math.sin(angle) * inner;
+
+                    const x2 = light.x + Math.cos(angle) * outer;
+                    const y2 = light.y + Math.sin(angle) * outer;
+
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
+
+                // 中心の太陽
+                ctx.fillStyle = '#fff8c4';
                 ctx.beginPath();
-                ctx.arc(light.x, light.y, 8, 0, Math.PI*2);
+                ctx.arc(light.x, light.y, 10, 0, Math.PI * 2);
                 ctx.fill();
-            }, '#ffa', [20, 40 + pulse]);
+
+                ctx.strokeStyle = '#fff176';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+            }, '#ffeb3b', [20, 40 + pulse, 60 + pulse]);
 
             // 7. クリア演出と再スタート案内
             if (gameState === 'cleared') {
