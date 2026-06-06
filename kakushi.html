@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Game Portal</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:
+      radial-gradient(
+        circle at top,
+        #1f2937,
+        #0d1117
+      );
+    color:white;
+    min-height:100vh;
+}
+
+header{
+    text-align:center;
+    padding:30px 20px 10px;
+}
+
+h1{
+    margin:0;
+    font-size:32px;
+}
+
+.sub{
+    margin-top:8px;
+    opacity:.7;
+}
+
+.container{
+    padding:20px;
+}
+
+.game-list{
+    display:grid;
+    grid-template-columns:
+      repeat(auto-fit,minmax(160px,1fr));
+    gap:18px;
+}
+
+.game-card,
+.game-card-disabled{
+    border-radius:28px;
+    padding:20px;
+    text-align:center;
+    background:
+      rgba(255,255,255,0.08);
+    border:
+      1px solid rgba(255,255,255,0.08);
+    backdrop-filter:blur(10px);
+}
+
+.game-card{
+    text-decoration:none;
+    color:white;
+    transition:.2s;
+}
+
+.game-card:hover{
+    transform:translateY(-4px);
+    box-shadow:
+      0 0 30px rgba(0,255,255,.15);
+}
+
+.game-card:active{
+    transform:scale(.96);
+}
+
+.game-card-disabled{
+    opacity:.7;
+}
+
+.game-icon{
+    width:90px;
+    height:90px;
+    margin:auto;
+    border-radius:26px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:42px;
+    box-shadow:
+      0 8px 20px rgba(0,0,0,.3);
+}
+
+.marubatsu{
+    background:
+      linear-gradient(
+        135deg,
+        #ef4444,
+        #f97316
+      );
+}
+
+.pentaroll{
+    background:
+      linear-gradient(
+        135deg,
+        #8b5cf6,
+        #2563eb
+      );
+}
+
+.hidden-timer{
+    background:
+      linear-gradient(
+        135deg,
+        #06b6d4,
+        #2563eb
+      );
+}
+
+.cup-shuffle{
+    background:
+      linear-gradient(
+        135deg,
+        #dc2626,
+        #991b1b
+      );
+}
+
+.fruit-sort{
+    background:
+      linear-gradient(
+        135deg,
+        #22c55e,
+        #16a34a
+      );
+}
+
+.stopwatch{
+    background:
+      linear-gradient(
+        135deg,
+        #06b6d4,
+        #0ea5e9
+      );
+}
+
+.irochi{
+    background:
+      linear-gradient(
+        135deg,
+        #f97316,
+        #ec4899,
+        #8b5cf6
+      );
+}
+
+/* ネオンメモリー */
+.neon-memory{
+    background:
+      linear-gradient(
+        135deg,
+        #00e5ff,
+        #7c3aed,
+        #ff2cdf
+      );
+}
+
+/* しりとり縛り */
+.shiritori{
+    background:
+      linear-gradient(
+        135deg,
+        #06b6d4,
+        #7c3aed,
+        #ec4899
+      );
+}
+
+/* イライラ棒ゲーム */
+.iraira-stick{
+    background:
+      linear-gradient(
+        135deg,
+        #facc15,
+        #f97316,
+        #ef4444
+      );
+}
+
+/* ブロック崩し */
+.breakout{
+    background:
+      linear-gradient(
+        135deg,
+        #f43f5e,
+        #ec4899,
+        #d946ef
+      );
+}
+
+/* 魚漢字クイズ */
+.fish-quiz{
+    background:
+      linear-gradient(
+        135deg,
+        #005a9c,
+        #0ea5e9,
+        #06b6d4
+      );
+}
+
+/* 【新規追加】3Dサバイバル迷路 */
+.maze{
+    background:
+      linear-gradient(
+        135deg,
+        #00ff88,
+        #00a3ff
+      );
+}
+
+.comingsoon{
+    background:
+      linear-gradient(
+        135deg,
+        #4b5563,
+        #1f2937
+      );
+}
+
+.game-name{
+    margin-top:16px;
+    font-size:18px;
+    font-weight:bold;
+}
+
+.game-desc{
+    margin-top:8px;
+    opacity:.7;
+    font-size:14px;
+}
+
+@media(max-width:600px){
+
+    h1{
+        font-size:26px;
+    }
+
+    .game-list{
+        grid-template-columns:
+          repeat(2,1fr);
+    }
+
+    .game-icon{
+        width:80px;
+        height:80px;
+        font-size:36px;
+    }
+}
+
+/*お知らせ*/
+.notice-box{
+    width:calc(100% - 40px);
+    max-width:900px;
+    margin:20px auto;
+    padding:20px;
+    border-radius:20px;
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.1);
+    backdrop-filter:blur(10px);
+}
+
+.notice-title{
+    font-size:22px;
+    font-weight:bold;
+    margin-bottom:15px;
+}
+
+.notice-item{
+    padding:12px 0;
+    border-bottom:1px solid rgba(255,255,255,0.1);
+}
+
+.notice-item:last-child{
+    border-bottom:none;
+}
+
+.notice-date{
+    color:#60a5fa;
+    font-size:14px;
+    font-weight:bold;
+}
+
+.notice-text{
+    margin-top:6px;
+    line-height:1.6;
+    opacity:.9;
+}
+
+/* NEON SHADOW */
+.neon-shadow{
+    background:
+      linear-gradient(
+        135deg,
+        #00ffff,
+        #8b5cf6,
+        #1e293b
+      );
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🎮 GAME PORTAL</h1>
+
+    <div class="sub">
+        好きなゲームをすぐ起動
+    </div>
+</header>
+
+<div class="notice-box">
+
+    <div class="notice-title">
+        📢 お知らせ
+    </div>
+
+    <div class="notice-item">
+        <div class="notice-date">
+            2026/06/06
+        </div>
+        <div class="notice-text">
+            これらは隠されたゲーム
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="game-list">
+
+        <a class="game-card"
+           href="https://naka0023.github.io/marubatugame/kakushi/marubatsu.html"
+           target="_blank">
+
+            <div class="game-icon marubatsu">
+                ⭕❌
+            </div>
+
+            <div class="game-name">
+                〇×ゲーム
+            </div>
+
+            <div class="game-desc">
+                新感覚○×ゲーム！途中から消えていく！
+            </div>
+
+        </a>
+
+        <a class="game-card"
+           href="https://naka0023.github.io/marubatugame/kakushi/penta.html"
+           target="_blank">
+
+            <div class="game-icon pentaroll">
+                🎲
+            </div>
+
+            <div class="game-name">
+                ペンタロール
+            </div>
+
+            <div class="game-desc">
+                新感覚5目並べ！端からボールを入れていこう！
+            </div>
+
+        </a>
+
+        <a class="game-card"
+           href="https://naka0023.github.io/marubatugame/kakushi/irochi.html"
+           target="_blank">
+
+            <div class="game-icon irochi">
+                🎨
+            </div>
+
+            <div class="game-name">
+                いろちタイムアタック
+            </div>
+
+            <div class="game-desc">
+                色と文字に惑わされる脳バグ反射ゲーム！
+            </div>
+
+        </a>
+
+    </div>
+
+</div>
+
+</body>
+</html>
