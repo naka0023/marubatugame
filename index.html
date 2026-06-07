@@ -2,13 +2,11 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Game Portal</title>
 
 <style>
-
 *{
     box-sizing:border-box;
 }
@@ -42,13 +40,23 @@ h1{
 }
 
 .container{
-    padding:20px;
+    padding: 0 20px 40px;
+}
+
+/* カテゴリ見出しのスタイル */
+.category-title {
+    font-size: 22px;
+    margin: 40px 0 18px;
+    padding-left: 10px;
+    border-left: 4px solid #00ffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .game-list{
     display:grid;
-    grid-template-columns:
-      repeat(auto-fit,minmax(160px,1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap:18px;
 }
 
@@ -57,10 +65,8 @@ h1{
     border-radius:28px;
     padding:20px;
     text-align:center;
-    background:
-      rgba(255,255,255,0.08);
-    border:
-      1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.08);
     backdrop-filter:blur(10px);
 }
 
@@ -72,8 +78,7 @@ h1{
 
 .game-card:hover{
     transform:translateY(-4px);
-    box-shadow:
-      0 0 30px rgba(0,255,255,.15);
+    box-shadow: 0 0 30px rgba(0,255,255,.15);
 }
 
 .game-card:active{
@@ -93,119 +98,21 @@ h1{
     align-items:center;
     justify-content:center;
     font-size:42px;
-    box-shadow:
-      0 8px 20px rgba(0,0,0,.3);
+    box-shadow: 0 8px 20px rgba(0,0,0,.3);
 }
 
-.hidden-timer{
-    background:
-      linear-gradient(
-        135deg,
-        #06b6d4,
-        #2563eb
-      );
-}
-
-.cup-shuffle{
-    background:
-      linear-gradient(
-        135deg,
-        #dc2626,
-        #991b1b
-      );
-}
-
-.fruit-sort{
-    background:
-      linear-gradient(
-        135deg,
-        #22c55e,
-        #16a34a
-      );
-}
-
-.stopwatch{
-    background:
-      linear-gradient(
-        135deg,
-        #06b6d4,
-        #0ea5e9
-      );
-}
-
-/* ネオンメモリー */
-.neon-memory{
-    background:
-      linear-gradient(
-        135deg,
-        #00e5ff,
-        #7c3aed,
-        #ff2cdf
-      );
-}
-
-/* しりとり縛り */
-.shiritori{
-    background:
-      linear-gradient(
-        135deg,
-        #06b6d4,
-        #7c3aed,
-        #ec4899
-      );
-}
-
-/* イライラ棒ゲーム */
-.iraira-stick{
-    background:
-      linear-gradient(
-        135deg,
-        #facc15,
-        #f97316,
-        #ef4444
-      );
-}
-
-/* ブロック崩し */
-.breakout{
-    background:
-      linear-gradient(
-        135deg,
-        #f43f5e,
-        #ec4899,
-        #d946ef
-      );
-}
-
-/* 魚漢字クイズ */
-.fish-quiz{
-    background:
-      linear-gradient(
-        135deg,
-        #005a9c,
-        #0ea5e9,
-        #06b6d4
-      );
-}
-
-/* 【新規追加】3Dサバイバル迷路 */
-.maze{
-    background:
-      linear-gradient(
-        135deg,
-        #00ff88,
-        #00a3ff
-      );
-}
-
-.comingsoon{
-    background:
-      linear-gradient(
-        135deg,
-        #4b5563,
-        #1f2937
-      );
-}
+/* 各ゲームの背景グラデーション */
+.hidden-timer{ background: linear-gradient(135deg, #06b6d4, #2563eb); }
+.cup-shuffle{ background: linear-gradient(135deg, #dc2626, #991b1b); }
+.fruit-sort{ background: linear-gradient(135deg, #22c55e, #16a34a); }
+.stopwatch{ background: linear-gradient(135deg, #06b6d4, #0ea5e9); }
+.neon-memory{ background: linear-gradient(135deg, #00e5ff, #7c3aed, #ff2cdf); }
+.shiritori{ background: linear-gradient(135deg, #06b6d4, #7c3aed, #ec4899); }
+.iraira-stick{ background: linear-gradient(135deg, #facc15, #f97316, #ef4444); }
+.breakout{ background: linear-gradient(135deg, #f43f5e, #ec4899, #d946ef); }
+.fish-quiz{ background: linear-gradient(135deg, #005a9c, #0ea5e9, #06b6d4); }
+.maze{ background: linear-gradient(135deg, #00ff88, #00a3ff); }
+.neon-shadow{ background: linear-gradient(135deg, #00ffff, #8b5cf6, #1e293b); }
 
 .game-name{
     margin-top:16px;
@@ -217,23 +124,60 @@ h1{
     margin-top:8px;
     opacity:.7;
     font-size:14px;
+    line-height: 1.4;
 }
 
+/* 📱 スマートフォン向け（画面幅600px以下）の最適化スタイル */
 @media(max-width:600px){
-
     h1{
         font-size:26px;
     }
 
-    .game-list{
-        grid-template-columns:
-          repeat(2,1fr);
+    .category-title {
+        font-size: 18px;
+        margin: 30px 0 12px;
     }
 
+    /* グリッドを解除して、縦並びのリスト形式に変更 */
+    .game-list{
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* 横長カード（左アイコン・右テキスト）に変形 */
+    .game-card,
+    .game-card-disabled{
+        display: flex;
+        align-items: center;
+        text-align: left;
+        padding: 14px 16px;
+        border-radius: 20px;
+    }
+
+    /* アイコンを小さくし、右側に余白を作る */
     .game-icon{
-        width:80px;
-        height:80px;
-        font-size:36px;
+        width: 60px;
+        height: 60px;
+        font-size: 28px;
+        border-radius: 16px;
+        margin: 0 16px 0 0;
+        flex-shrink: 0; /* アイコンが潰れるのを防ぐ */
+    }
+
+    /* テキストエリアの調整 */
+    .game-info {
+        flex: 1;
+    }
+
+    .game-name{
+        margin-top: 0;
+        font-size: 16px;
+    }
+
+    .game-desc{
+        margin-top: 4px;
+        font-size: 12px;
     }
 }
 
@@ -275,18 +219,6 @@ h1{
     line-height:1.6;
     opacity:.9;
 }
-
-/* NEON SHADOW */
-.neon-shadow{
-    background:
-      linear-gradient(
-        135deg,
-        #00ffff,
-        #8b5cf6,
-        #1e293b
-      );
-}
-
 </style>
 </head>
 
@@ -294,254 +226,129 @@ h1{
 
 <header>
     <h1>🎮 GAME PORTAL</h1>
-
-    <div class="sub">
-        好きなゲームをすぐ起動
-    </div>
+    <div class="sub">好きなゲームをすぐ起動</div>
 </header>
 
 <div class="notice-box">
-
-    <div class="notice-title">
-        📢 お知らせ
-    </div>
-
+    <div class="notice-title">📢 お知らせ</div>
     <div class="notice-item">
-        <div class="notice-date">
-            2026/06/06
-        </div>
+        <div class="notice-date">2026/06/06</div>
         <div class="notice-text">
             新作「NEON SHADOW」(beta版)を追加しました。光を動かして影の道を作る新感覚パズルゲームです。
         </div>
     </div>
-
     <div class="notice-item">
-        <div class="notice-date">
-            2026/06/06
-        </div>
-        <div class="notice-text">
-            GAME PORTALにお知らせを追加しました。
-        </div>
+        <div class="notice-date">2026/06/06</div>
+        <div class="notice-text">GAME PORTALにお知らせを追加しました。</div>
     </div>
-
 </div>
 
 <div class="container">
 
+    <h2 class="category-title">⭐ おすすめゲーム</h2>
     <div class="game-list">
-        <a class="game-card"
-           href="https://naka0023.github.io/marubatugame/hidden-timer.html"
-           target="_blank">
-
-            <div class="game-icon hidden-timer">
-                ⏱
+        
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/neon_chaos.html" target="_blank">
+            <div class="game-icon iraira-stick">⚡</div>
+            <div class="game-info">
+                <div class="game-name">イライラ棒ゲーム</div>
+                <div class="game-desc">壁にぶつかるな！ゴールを目指する集中力ゲーム！</div>
             </div>
-
-            <div class="game-name">
-                隠しタイマーゲーム
-            </div>
-
-            <div class="game-desc">
-                時間を読み切れ！超えた瞬間に負け！
-            </div>
-
         </a>
 
-        <a class="game-card"
-           href="https://naka0023.github.io/marubatugame/cup-shuffle.html"
-           target="_blank">
-
-            <div class="game-icon cup-shuffle">
-                🥤
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/neon_memory.html" target="_blank">
+            <div class="game-icon neon-memory">🧠</div>
+            <div class="game-info">
+                <div class="game-name">ネオンメモリー</div>
+                <div class="game-desc">光る順番を覚えろ！限界まで記憶力チャレンジ！</div>
             </div>
-
-            <div class="game-name">
-                カップシャッフル
-            </div>
-
-            <div class="game-desc">
-                ボールを見失うな！レベル10を目指せ！
-            </div>
-
         </a>
 
-        <a class="game-card"
-           href="https://naka0023.github.io/marubatugame/fruit-sort.html"
-           target="_blank">
-
-            <div class="game-icon fruit-sort">
-                🍌
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/maze.html" target="_blank">
+            <div class="game-icon maze">💎</div>
+            <div class="game-info">
+                <div class="game-name">3Dサバイバル迷路</div>
+                <div class="game-desc">20個の宝石を集めてお化けから逃げ切れ！臨場感抜群の3D迷路脱出ゲーム！</div>
             </div>
+        </a>
+    </div>
 
-            <div class="game-name">
-                フルーツ仕分け
+
+    <h2 class="category-title">🕹️ 通常ゲーム</h2>
+    <div class="game-list">
+
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/stopwatch.html" target="_blank">
+            <div class="game-icon stopwatch">⏱</div>
+            <div class="game-info">
+                <div class="game-name">タイマーゲーム</div>
+                <div class="game-desc">ピッタリ止めろ！集中力チャレンジ！</div>
             </div>
-
-            <div class="game-desc">
-                スワイプで仕分け！反射神経ゲーム！
-            </div>
-
         </a>
 
-        <a class="game-card"
-           href="https://naka0023.github.io/marubatugame/stopwatch.html"
-           target="_blank">
-
-            <div class="game-icon stopwatch">
-                ⏱
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/cup-shuffle.html" target="_blank">
+            <div class="game-icon cup-shuffle">🥤</div>
+            <div class="game-info">
+                <div class="game-name">カップシャッフル</div>
+                <div class="game-desc">ボールを見失うな！レベル10を目指せ！</div>
             </div>
-
-            <div class="game-name">
-                タイマーゲーム
-            </div>
-
-            <div class="game-desc">
-                ピッタリ止めろ！集中力チャレンジ！
-            </div>
-
         </a>
 
-        <a class="game-card"
-           href="https://naka0023.github.io/marubatugame/neon_memory.html"
-           target="_blank">
-
-            <div class="game-icon neon-memory">
-                🧠
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/fruit-sort.html" target="_blank">
+            <div class="game-icon fruit-sort">🍌</div>
+            <div class="game-info">
+                <div class="game-name">フルーツ仕分け</div>
+                <div class="game-desc">スワイプで仕分け！反射神経ゲーム！</div>
             </div>
-
-            <div class="game-name">
-                ネオンメモリー
-            </div>
-
-            <div class="game-desc">
-                光る順番を覚えろ！限界まで記憶力チャレンジ！
-            </div>
-
         </a>
 
-        <a class="game-card"
-           href="https://naka0023.github.io/marubatugame/shiritori.html"
-           target="_blank">
-
-            <div class="game-icon shiritori">
-                🗣️
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/breaking_blocks.html" target="_blank">
+            <div class="game-icon breakout">🧱</div>
+            <div class="game-info">
+                <div class="game-name">爽快！ブロック崩し</div>
+                <div class="game-desc">ボールを打ち返してブロックを破壊！爽快クラッシュゲーム！</div>
             </div>
-
-            <div class="game-name">
-                しりとり縛り
-            </div>
-
-            <div class="game-desc">
-                縛り付きしりとり！被りチェックも可能！
-            </div>
-
         </a>
 
-        <a class="game-card"
-        href="https://naka0023.github.io/marubatugame/neon_chaos.html"
-        target="_blank">
-
-            <div class="game-icon iraira-stick">
-                ⚡
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/fish_quiz.html" target="_blank">
+            <div class="game-icon fish-quiz">🐟</div>
+            <div class="game-info">
+                <div class="game-name">魚漢字クイズ</div>
+                <div class="game-desc">難読漢字に挑戦！ボリュームたっぷりの魚辺漢字クイズと雑学ゲーム！</div>
             </div>
+        </a>
+    </div>
 
-            <div class="game-name">
-                イライラ棒ゲーム
+    <h2 class="category-title">👪 複数人用ゲーム</h2>
+    <div class="game-list">
+        
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/hidden-timer.html" target="_blank">
+            <div class="game-icon hidden-timer">⏱</div>
+            <div class="game-info">
+                <div class="game-name">隠しタイマーゲーム</div>
+                <div class="game-desc">時間を読み切れ！超えた瞬間に負け！</div>
             </div>
-
-            <div class="game-desc">
-                壁にぶつかるな！ゴールを目指する集中力ゲーム！
+        </a>
+    
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/shiritori.html" target="_blank">
+            <div class="game-icon shiritori">🗣️</div>
+            <div class="game-info">
+                <div class="game-name">しりとり縛り</div>
+                <div class="game-desc">縛り付きしりとり！被りチェックも可能！</div>
             </div>
-
         </a>
 
-        <a class="game-card"
-           href="https://naka0023.github.io/marubatugame/breaking_blocks.html"
-           target="_blank">
+    </div>
 
-            <div class="game-icon breakout">
-                🧱
+    <h2 class="category-title">🧪 beta版</h2>
+    <div class="game-list">
+
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/neon_shadow.html" target="_blank">
+            <div class="game-icon neon-shadow">☀️</div>
+            <div class="game-info">
+                <div class="game-name">NEON SHADOW (beta版)</div>
+                <div class="game-desc">光を操り影の足場を作れ！ボールをゴールへ導くネオン物理パズル！</div>
             </div>
-
-            <div class="game-name">
-                ブロック崩し
-            </div>
-
-            <div class="game-desc">
-                ボールを打ち返してブロックを破壊！爽快クラッシュゲーム！
-            </div>
-
         </a>
-
-        <a class="game-card"
-           href="https://naka0023.github.io/marubatugame/fish_quiz.html"
-           target="_blank">
-
-            <div class="game-icon fish-quiz">
-                🐟
-            </div>
-
-            <div class="game-name">
-                魚漢字クイズ
-            </div>
-
-            <div class="game-desc">
-                難読漢字に挑戦！ボリュームたっぷりの魚辺漢字クイズと雑学ゲーム！
-            </div>
-
-        </a>
-
-        <a class="game-card"
-           href="https://naka0023.github.io/marubatugame/maze.html"
-           target="_blank">
-
-            <div class="game-icon maze">
-                💎
-            </div>
-
-            <div class="game-name">
-                3Dサバイバル迷路
-            </div>
-
-            <div class="game-desc">
-                20個の宝石を集めてお化けから逃げ切れ！臨場感抜群の3D迷路脱出ゲーム！
-            </div>
-
-        </a>
-
-        <a class="game-card"
-            href="https://naka0023.github.io/marubatugame/neon_shadow.html"
-            target="_blank">
-
-            <div class="game-icon neon-shadow">
-                ☀️
-            </div>
-
-            <div class="game-name">
-                NEON SHADOW (beta版)
-            </div>
-
-            <div class="game-desc">
-                光を操り影の足場を作れ！ボールをゴールへ導くネオン物理パズル！
-            </div>
-
-        </a>
-
-        <div class="game-card-disabled">
-
-            <div class="game-icon comingsoon">
-                🔒
-            </div>
-
-            <div class="game-name">
-                近日公開
-            </div>
-
-            <div class="game-desc">
-                Coming Soon...
-            </div>
-
-        </div>
 
     </div>
 
