@@ -5,17 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Neon Shadow Puzzle - Dual Physics Fix</title>
     <style>
-        body { margin: 0; padding: 0; background: #050510; color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        #game-container { position: relative; width: 100%; max-width: 800px; aspect-ratio: 4 / 3; }
-        canvas { width: 100%; height: 100%; background: #0a0a1a; box-shadow: 0 0 40px rgba(0, 255, 255, 0.1); border: 1px solid #1a1a3a; border-radius: 8px; cursor: crosshair; display: block; touch-action: none; }
-        #ui { position: absolute; top: 15px; left: 15px; pointer-events: none; }
-        #level-info { position: absolute; top: 15px; right: 20px; text-align: right; pointer-events: none; }
-        h1, h2 { margin: 0; font-size: 20px; color: #0ff; text-shadow: 0 0 10px #0ff; }
-        p { margin: 5px 0 0 0; font-size: 13px; color: #aaa; max-width: 400px; }
-        .star-count { font-size: 20px; color: #ffeb3b; font-weight: bold; text-shadow: 0 0 10px #ffeb3b; }
+        body { 
+            margin: 0; 
+            padding: 10px; 
+            background: #050510; 
+            color: #fff; 
+            font-family: 'Segoe UI', sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            box-sizing: border-box;
+            overflow: hidden; 
+        }
         
-        #button-container { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 20px; pointer-events: none; z-index: 100; }
-        .btn { pointer-events: auto; padding: 10px 20px; font-size: 14px; background: rgba(5, 5, 20, 0.8); font-weight: bold; color: #0ff; border: 2px solid #0ff; border-radius: 20px; cursor: pointer; transition: all 0.2s; box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); }
+        /* UIとゲーム画面が被らないように配置するラッパー */
+        #game-wrapper {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 800px;
+            gap: 10px;
+        }
+
+        /* 上部UIのレイアウト */
+        #header-ui {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0 5px;
+        }
+        #ui { max-width: 70%; }
+        #level-info { text-align: right; }
+
+        h1, h2 { margin: 0; font-size: 18px; color: #0ff; text-shadow: 0 0 10px #0ff; }
+        p { margin: 5px 0 0 0; font-size: 12px; color: #aaa; }
+        .star-count { font-size: 18px; color: #ffeb3b; font-weight: bold; text-shadow: 0 0 10px #ffeb3b; }
+        
+        /* ゲーム画面 */
+        #game-container { position: relative; width: 100%; aspect-ratio: 4 / 3; }
+        canvas { width: 100%; height: 100%; background: #0a0a1a; box-shadow: 0 0 40px rgba(0, 255, 255, 0.1); border: 1px solid #1a1a3a; border-radius: 8px; cursor: crosshair; display: block; touch-action: none; }
+        
+        /* 下部ボタンのレイアウト */
+        #button-container { width: 100%; display: flex; justify-content: center; gap: 15px; padding: 5px 0; }
+        .btn { padding: 10px 20px; font-size: 14px; background: rgba(5, 5, 20, 0.8); font-weight: bold; color: #0ff; border: 2px solid #0ff; border-radius: 20px; cursor: pointer; transition: all 0.2s; box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); }
         .btn:active { background: #0ff; color: #000; }
         #retry-btn { color: #f0f; border-color: #f0f; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3); }
         #retry-btn:active { background: #f0f; color: #fff; }
@@ -23,16 +59,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 </head>
 <body>
-    <div id="game-container">
-        <div id="ui">
-            <h1 id="stage-title">STAGE 1</h1>
-            <p id="stage-desc">説明文</p>
+    <div id="game-wrapper">
+        <div id="header-ui">
+            <div id="ui">
+                <h1 id="stage-title">STAGE 1</h1>
+                <p id="stage-desc">説明文</p>
+            </div>
+            <div id="level-info">
+                <h2>STARS</h2>
+                <div class="star-count" id="star-display">0 / 0</div>
+            </div>
         </div>
-        <div id="level-info">
-            <h2>STARS</h2>
-            <div class="star-count" id="star-display">0 / 0</div>
+
+        <div id="game-container">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
         </div>
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
         
         <div id="button-container">
             <button class="btn" onclick="prevLevel()">◀ 前へ</button>
@@ -101,9 +142,10 @@
             },
             {
                 title: "STAGE 5: Shadow Disrupter",
-                desc: "オレンジの壁に影が当たると遮断される。壁の手前まで影を伸ばして利用しよう。",
-                start: { x: 100, y: 150 }, goal: { x: 700, y: 500, radius: 25 },
-                obstacles: [ { x: 300, y: 280, w: 120, h: 30 } ],
+                desc: "オレンジの壁に影が当たると遮断される。上下に動くブロックを上手く利用しよう。",
+                start: { x: 100, y: 150 }, goal: { x: 600, y: 500, radius: 25 },
+                // moveRangeY: 上下の移動幅, moveSpeedY: 移動速度
+                obstacles: [ { x: 300, y: 280, w: 120, h: 30, moveRangeY: 80, moveSpeedY: 0.002 } ],
                 barriers: [ { p1: { x: 460, y: 100 }, p2: { x: 460, y: 450 } } ],
                 stars: [ { x: 300, y: 450 } ]
             },
@@ -201,9 +243,12 @@
 
                 obstacles.push({
                     body: body, w: obsData.w, h: obsData.h,
+                    initialX: obsData.x, initialY: obsData.y, // 移動用に初期座標を保持
                     rotateSpeed: obsData.rotateSpeed || 0,
+                    moveRangeY: obsData.moveRangeY || 0,     // 上下移動幅
+                    moveSpeedY: obsData.moveSpeedY || 0,     // 上下移動速度
                     isGlass: obsData.isGlass || false,
-                    shadowFloors: [] // 【解決】複数の足場を格納する配列に変更
+                    shadowFloors: []
                 });
             });
 
@@ -297,7 +342,12 @@
                 obstacles.forEach((obs) => {
                     if (obs.rotateSpeed !== 0) Body.setAngle(obs.body, obs.body.angle + obs.rotateSpeed);
                     
-                    // 【解決】古い影の物理ボディ（両側とも）を毎フレーム確実に削除
+                    // 【修正】上下に動くブロックの処理を追加
+                    if (obs.moveRangeY !== 0) {
+                        const newY = obs.initialY + Math.sin(Date.now() * obs.moveSpeedY) * obs.moveRangeY;
+                        Body.setPosition(obs.body, { x: obs.body.position.x, y: newY });
+                    }
+                    
                     if (obs.shadowFloors) {
                         obs.shadowFloors.forEach(floor => Composite.remove(engine.world, floor));
                     }
@@ -337,7 +387,6 @@
                         let leftEnd = Vector.add(leftEdge, Vector.mult(dirLeft, maxDistLeft));
                         let rightEnd = Vector.add(rightEdge, Vector.mult(dirRight, maxDistRight));
 
-                        // オレンジ壁との衝突による長さ制限（両方のラインで計算）
                         if (data.barriers) {
                             for (let b of data.barriers) {
                                 let ptL = getIntersection(leftEdge, leftEnd, b.p1, b.p2);
@@ -356,7 +405,6 @@
                         leftEnd = Vector.add(leftEdge, Vector.mult(dirLeft, maxDistLeft));
                         rightEnd = Vector.add(rightEdge, Vector.mult(dirRight, maxDistRight));
 
-                        // 【解決】左側のライン（上のライン等）の物理ボディ生成
                         if (maxDistLeft > 5) {
                             const centerLeft = Vector.add(leftEdge, Vector.mult(dirLeft, maxDistLeft / 2));
                             const angleLeft = Math.atan2(dirLeft.y, dirLeft.x);
@@ -367,7 +415,6 @@
                             obs.shadowFloors.push(floorLeft);
                         }
 
-                        // 【解決】右側のライン（下のライン等）の物理ボディ生成
                         if (maxDistRight > 5) {
                             const centerRight = Vector.add(rightEdge, Vector.mult(dirRight, maxDistRight / 2));
                             const angleRight = Math.atan2(dirRight.y, dirRight.x);
@@ -404,7 +451,7 @@
                 });
             }
 
-            // 2. 影と足場のハイライト（両方のラインをネオン描画）
+            // 2. 影と足場のハイライト
             obstacles.forEach(obs => {
                 if (obs.poly) {
                     if (shadowPattern) {
@@ -448,8 +495,8 @@
 
             // 5. 障害物
             obstacles.forEach(obs => {
-                const verts = obs.body.vertices; const isRot = obs.rotateSpeed !== 0;
-                const strokeColor = obs.isGlass ? '#0ff' : (isRot ? '#0f0' : '#08f');
+                const verts = obs.body.vertices; const isRot = obs.rotateSpeed !== 0; const isMov = obs.moveRangeY !== 0;
+                const strokeColor = obs.isGlass ? '#0ff' : (isRot ? '#0f0' : (isMov ? '#0f0' : '#08f'));
                 drawNeon(() => {
                     ctx.fillStyle = obs.isGlass ? 'rgba(0, 200, 255, 0.15)' : '#000';
                     ctx.strokeStyle = strokeColor; ctx.lineWidth = 2; ctx.beginPath();
