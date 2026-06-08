@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ネオン·ミラー·ラリー（嵐修正版）</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            background-color: #111;
+            color: #fff;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            height: 100%;
+            max-height: 800px;
+            aspect-ratio: 9 / 16;
+            background: #1a1a24;
+            border: 4px solid #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        .overlay h1 {
+            font-size: 2rem;
+            color: #00ffcc;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ffcc;
+            text-align: center;
+        }
+        .overlay p {
+            font-size: 1rem;
+            color: #ccc;
+            margin-bottom: 30px;
+            text-align: center;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+        .btn {
+            padding: 12px 35px;
+            font-size: 1.2rem;
+            background: linear-gradient(45deg, #ff0077, #ff0055);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 0 15px #ff0055;
+            font-weight: bold;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="start-screen" class="overlay">
+        <h1>NEON MIRROR RALLY</h1>
+        <p>奥のマレットは左右上下が反転して動く！<br>どちらのゴールに落ちてもゲームオーバー！<br>（画面スワイプで手前を操作）</p>
+        <button class="btn" onclick="startGame()">ゲームスタート</button>
+    </div>
+
+    <div id="gameover-screen" class="overlay hidden">
+        <h1>GAME OVER</h1>
+        <p id="final-score">ラリー回数: 0</p>
+        <button class="btn" onclick="startGame()">もう一度挑戦</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const V_WIDTH = 450;
+    const V_HEIGHT = 800;
+    canvas.width = V_WIDTH;
+    canvas.height = V_HEIGHT;
+
+    let gameState = 'START';
+    let score = 0;
+    let particles = [];
+
+    // 手前のマレット
+    const defaultMalletRadius = 35;
+    let mallet = {
+        x: V_WIDTH / 2,
+        y: V_HEIGHT - 100,
+        radius: defaultMalletRadius,
+        color: '#00ffcc'
+    };
+
+    // 奥のマレット
+    let malletTop = {
+        x: V_WIDTH / 2,
+        y: 100,
+        radius: defaultMalletRadius,
+        color: '#ff00ff'
+    };
+
+    // パック
+    let puck = {
+        x: V_WIDTH / 2,
+        y: V_HEIGHT / 2,
+        vx: 4,
+        vy: 5,
+        radius: 15,
+        color: '#ffffff'
+    };
+
+    // 妨害アイテム
+    let item = {
+        x: 0,
+        y: 0,
+        radius: 20,
+        active: false,
+        type: '', 
+        color: '#fff',
+        label: ''
+    };
+
+    // 妨害ステータス
+    let activeDebuff = null; 
+    let debuffTimer = 0;
+    const DEBUFF_DURATION = 300; 
+    let itemSpawnTimer = 100;
+
+    // タッチ用
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let malletStartX = 0;
+    let malletStartY = 0;
+
+    window.addEventListener('touchstart', handleStart, { passive: false });
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+
+    function getCanvasCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) * (V_WIDTH / rect.width),
+            y: (clientY - rect.top) * (V_HEIGHT / rect.height)
+        };
+    }
+
+    function handleStart(e) {
+        if (gameState !== 'PLAYING') return;
+        const coords = getCanvasCoords(e);
+        touchStartX = coords.x;
+        touchStartY = coords.y;
+        malletStartX = mallet.x;
+        malletStartY = mallet.y;
+        if(e.cancelable) e.preventDefault();
+    }
+
+    function handleMove(e) {
+        if (gameState !== 'PLAYING') return;
+        const coords = getCanvasCoords(e);
+        
+        let dx = coords.x - touchStartX;
+        let dy = coords.y - touchStartY;
+
+        mallet.x = malletStartX + dx;
+        mallet.y = malletStartY + dy;
+
+        if (mallet.x < mallet.radius) mallet.x = mallet.radius;
+        if (mallet.x > V_WIDTH - mallet.radius) mallet.x = V_WIDTH - mallet.radius;
+        if (mallet.y < V_HEIGHT / 2 + mallet.radius) mallet.y = V_HEIGHT / 2 + mallet.radius;
+        if (mallet.y > V_HEIGHT - mallet.radius) mallet.y = V_HEIGHT - mallet.radius;
+
+        malletTop.x = V_WIDTH - mallet.x; 
+        malletTop.y = V_HEIGHT - mallet.y; 
+
+        if(e.cancelable) e.preventDefault();
+    }
+
+    function startGame() {
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('gameover-screen').classList.add('hidden');
+        
+        score = 0;
+        mallet.x = V_WIDTH / 2;
+        mallet.y = V_HEIGHT - 100;
+        mallet.radius = defaultMalletRadius;
+
+        malletTop.x = V_WIDTH / 2;
+        malletTop.y = 100;
+        malletTop.radius = defaultMalletRadius;
+        
+        puck.x = V_WIDTH / 2;
+        puck.y = V_HEIGHT / 2;
+        puck.vx = (Math.random() > 0.5 ? 1 : -1) * 3;
+        puck.vy = Math.random() > 0.5 ? 5 : -5;
+        
+        item.active = false;
+        activeDebuff = null;
+        debuffTimer = 0;
+        itemSpawnTimer = 60;
+        particles = [];
+        
+        gameState = 'PLAYING';
+    }
+
+    function gameOver() {
+        gameState = 'GAMEOVER';
+        document.getElementById('final-score').innerText = `ラリー回数: ${score} 回`;
+        document.getElementById('gameover-screen').classList.remove('hidden');
+    }
+
+    function spawnItem() {
+        const types = [
+            { type: 'MINI', color: '#bf55ec', label: '小' },
+            { type: 'SPEED', color: '#ff4757', label: '急' },
+            { type: 'WIND', color: '#ffa502', label: '嵐' }
+        ];
+        const chosen = types[Math.floor(Math.random() * types.length)];
+        
+        item.x = Math.random() * (V_WIDTH - 100) + 50;
+        item.y = Math.random() * (V_HEIGHT / 4) + (V_HEIGHT * 3 / 8); 
+        item.type = chosen.type;
+        item.color = chosen.color;
+        item.label = chosen.label;
+        item.active = true;
+    }
+
+    function triggerDebuff(type) {
+        activeDebuff = type;
+        debuffTimer = DEBUFF_DURATION;
+        item.active = false;
+        createParticles(item.x, item.y, item.color, 20);
+    }
+
+    function createParticles(x, y, color, count) {
+        for(let i=0; i<count; i++) {
+            particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 8,
+                radius: Math.random() * 3 + 2,
+                color: color,
+                alpha: 1
+            });
+        }
+    }
+
+    function update() {
+        if (gameState !== 'PLAYING') return;
+
+        if (activeDebuff) {
+            debuffTimer--;
+            if (debuffTimer <= 0) {
+                activeDebuff = null;
+                mallet.radius = defaultMalletRadius;
+                malletTop.radius = defaultMalletRadius;
+            } else {
+                if (activeDebuff === 'MINI') {
+                    mallet.radius = defaultMalletRadius * 0.5;
+                    malletTop.radius = defaultMalletRadius * 0.5;
+                }
+            }
+        }
+
+        if (!item.active && !activeDebuff) {
+            itemSpawnTimer--;
+            if (itemSpawnTimer <= 0) {
+                spawnItem();
+                itemSpawnTimer = 250;
+            }
+        }
+
+        // 【ここを修正】風の計算方法を改善（影響度を 0.6 → 5.0 に大幅に強化）
+        let currentVx = puck.vx;
+        if (activeDebuff === 'WIND') {
+            // サイン波を使って左右に大きく揺さぶる（5.0ピクセルの強制横移動を追加）
+            currentVx += Math.sin(Date.now() / 150) * 5.0;
+        }
+        
+        let speedMultiplier = (activeDebuff === 'SPEED') ? 1.5 : 1.0;
+        puck.x += currentVx * speedMultiplier;
+        puck.y += puck.vy * speedMultiplier;
+
+        if (puck.x - puck.radius < 0) {
+            puck.x = puck.radius;
+            puck.vx = -puck.vx;
+            createParticles(0, puck.y, '#fff', 3);
+        } else if (puck.x + puck.radius > V_WIDTH) {
+            puck.x = V_WIDTH - puck.radius;
+            puck.vx = -puck.vx;
+            createParticles(V_WIDTH, puck.y, '#fff', 3);
+        }
+
+        if (puck.y - puck.radius > V_HEIGHT || puck.y + puck.radius < 0) {
+            gameOver();
+        }
+
+        if (item.active) {
+            let distX = puck.x - item.x;
+            let distY = puck.y - item.y;
+            let distance = Math.sqrt(distX * distX + distY * distY);
+            if (distance < puck.radius + item.radius) {
+                triggerDebuff(item.type);
+            }
+        }
+
+        let mDistX = puck.x - mallet.x;
+        let mDistY = puck.y - mallet.y;
+        let mDistance = Math.sqrt(mDistX * mDistX + mDistY * mDistY);
+
+        if (mDistance < puck.radius + mallet.radius) {
+            let overlap = (puck.radius + mallet.radius) - mDistance;
+            let nx = mDistX / mDistance;
+            let ny = mDistY / mDistance;
+            puck.x += nx * overlap;
+            puck.y += ny * overlap;
+
+            let speed = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
+            puck.vx = nx * speed * 1.03;
+            puck.vy = ny * speed * 1.03;
+
+            if (puck.vy > -3) puck.vy = -3;
+
+            score++;
+            createParticles(puck.x, puck.y, mallet.color, 8);
+        }
+
+        let mtDistX = puck.x - malletTop.x;
+        let mtDistY = puck.y - malletTop.y;
+        let mtDistance = Math.sqrt(mtDistX * mtDistX + mtDistY * mtDistY);
+
+        if (mtDistance < puck.radius + malletTop.radius) {
+            let overlap = (puck.radius + malletTop.radius) - mtDistance;
+            let nx = mtDistX / mtDistance;
+            let ny = mtDistY / mtDistance;
+            puck.x += nx * overlap;
+            puck.y += ny * overlap;
+
+            let speed = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
+            puck.vx = nx * speed * 1.03;
+            puck.vy = ny * speed * 1.03;
+
+            if (puck.vy < 3) puck.vy = 3;
+
+            score++;
+            createParticles(puck.x, puck.y, malletTop.color, 8);
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.alpha -= 0.03;
+            if (p.alpha <= 0) particles.splice(i, 1);
+        }
+    }
+
+    function draw() {
+        ctx.fillStyle = '#1a1a24';
+        ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(0, V_HEIGHT / 2);
+        ctx.lineTo(V_WIDTH, V_HEIGHT / 2);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.font = 'bold 120px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(score, V_WIDTH / 2, V_HEIGHT / 2);
+
+        if (activeDebuff) {
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+            ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+            
+            ctx.fillStyle = '#ff4757';
+            ctx.font = 'bold 20px sans-serif';
+            ctx.textAlign = 'center';
+            let statusText = "";
+            if (activeDebuff === 'MINI') statusText = "⚠️ 両マレット縮小中！";
+            if (activeDebuff === 'SPEED') statusText = "⚠️ パック超加速中！";
+            if (activeDebuff === 'WIND') statusText = "⚠️ 突風注意報！";
+            ctx.fillText(`${statusText} (${Math.ceil(debuffTimer/60)}s)`, V_WIDTH / 2, 40);
+        }
+
+        if (item.active) {
+            ctx.save();
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = item.color;
+            ctx.fillStyle = item.color;
+            ctx.beginPath();
+            ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(item.label, item.x, item.y);
+            ctx.restore();
+        }
+
+        ctx.save();
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = puck.color;
+        ctx.fillStyle = puck.color;
+        ctx.beginPath();
+        ctx.arc(puck.x, puck.y, puck.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = mallet.color;
+        ctx.fillStyle = mallet.color;
+        ctx.beginPath();
+        ctx.arc(mallet.x, mallet.y, mallet.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#1a1a24';
+        ctx.beginPath();
+        ctx.arc(mallet.x, mallet.y, mallet.radius * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = malletTop.color;
+        ctx.fillStyle = malletTop.color;
+        ctx.beginPath();
+        ctx.arc(malletTop.x, malletTop.y, malletTop.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#1a1a24';
+        ctx.beginPath();
+        ctx.arc(malletTop.x, malletTop.y, malletTop.radius * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        particles.forEach(p => {
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        });
+    }
+
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+</script>
+</body>
+</html>
