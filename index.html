@@ -7,7 +7,7 @@
 <title>Game Portal</title>
 
 <style>
-*{
+*={
     box-sizing:border-box;
 }
 
@@ -113,6 +113,8 @@ h1{
 .fish-quiz{ background: linear-gradient(135deg, #005a9c, #0ea5e9, #06b6d4); }
 .maze{ background: linear-gradient(135deg, #00ff88, #00a3ff); }
 .neon-shadow{ background: linear-gradient(135deg, #00ffff, #8b5cf6, #1e293b); }
+/* 🏒 ネオン・ミラー・ラリー用グラデーションを追加 */
+.neon-hockey{ background: linear-gradient(135deg, #00ffcc, #ff00ff); }
 
 .game-name{
     margin-top:16px;
@@ -231,6 +233,13 @@ h1{
 
 <div class="notice-box">
     <div class="notice-title">📢 お知らせ</div>
+    <!-- 🆕 ネオン・ミラー・ラリーのお知らせを追加 -->
+    <div class="notice-item">
+        <div class="notice-date">2026/06/09</div>
+        <div class="notice-text">
+            新作「ネオン・ミラー・ラリー」を追加しました。上下でアベコベに連動するマレットを操り、凶悪な妨害アイテムを潜り抜ける新感覚の1人エアーホッケーゲームです。
+        </div>
+    </div>
     <div class="notice-item">
         <div class="notice-date">2026/06/06</div>
         <div class="notice-text">
@@ -276,6 +285,15 @@ h1{
 
     <h2 class="category-title">🕹️ 通常ゲーム</h2>
     <div class="game-list">
+
+        <!-- 🆕 ネオン・ミラー・ラリーのカードをここに追加 -->
+        <a class="game-card" href="https://naka0023.github.io/marubatugame/neon_mirror_rally.html" target="_blank">
+            <div class="game-icon neon-hockey">🏒</div>
+            <div class="game-info">
+                <div class="game-name">ネオン・ミラー・ラリー</div>
+                <div class="game-desc">上下で反転連動するマレットを操れ！凶悪な妨害アイテムが襲いかかる極限の1人エアーホッケー！</div>
+            </div>
+        </a>
 
         <a class="game-card" href="https://naka0023.github.io/marubatugame/stopwatch.html" target="_blank">
             <div class="game-icon stopwatch">⏱</div>
