@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>目指せ100点満点！三色モグラ叩き</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            text-align: center;
+            background-color: #e2f0d9;
+            margin: 0;
+            padding: 20px;
+            user-select: none;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+            text-shadow: 1px 1px 0 white;
+        }
+        p {
+            margin: 0 0 15px 0;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        .info-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .score-box { color: #d9534f; }
+        .time-box { color: #0275d8; }
+        
+        .btn {
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 5px #e65100;
+            transition: all 0.1s;
+        }
+        .btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 0px #e65100;
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 140px);
+            grid-gap: 15px 25px;
+            justify-content: center;
+            margin: 20px auto;
+        }
+
+        .hole-container {
+            width: 140px;
+            height: 150px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hole-back {
+            width: 120px;
+            height: 40px;
+            background-color: #23150c;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 15px;
+            left: 10px;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.7);
+        }
+
+        /* 基本（茶色モグラ） */
+        .mole {
+            width: 84px;
+            height: 90px;
+            background-color: #a1887f;
+            border-radius: 42px 42px 0 0;
+            position: absolute;
+            left: 28px;
+            bottom: 25px;
+            z-index: 2;
+            transform: translateY(110px);
+            transition: transform 0.12s cubic-bezier(0.175, 0.885, 0.32, 1.2), background-color 0.1s;
+            cursor: pointer;
+        }
+
+        /* 金のモグラ */
+        .mole.gold {
+            background-color: #ffd700 !important;
+            box-shadow: 0 0 20px #ffea00;
+        }
+        .mole.gold .nose { background-color: #ffa726; }
+
+        /* 紫のモグラ */
+        .mole.purple {
+            background-color: #8e24aa !important;
+            box-shadow: 0 0 10px rgba(142, 36, 170, 0.5);
+        }
+        .mole.purple .nose { background-color: #ba68c8; }
+
+        .hole-container.up .mole {
+            transform: translateY(-15px);
+        }
+
+        /* 叩かれたとき */
+        .mole.whacked {
+            background-color: #ff5252 !important;
+            box-shadow: none !important;
+            transform: translateY(40px) scaleY(0.4) !important;
+            transition: transform 0.06s ease-in;
+        }
+        
+        .eye {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background-color: #212121;
+            border-radius: 50%;
+            top: 25px;
+        }
+        .eye.left { left: 24px; }
+        .eye.right { right: 24px; }
+        
+        .mole.whacked .eye {
+            background: transparent;
+        }
+        .mole.whacked .eye::before {
+            content: '×';
+            position: absolute;
+            font-size: 12px;
+            font-weight: bold;
+            top: -7px;
+            left: -3px;
+            color: #000;
+        }
+
+        .nose {
+            position: absolute;
+            width: 14px;
+            height: 9px;
+            background-color: #ff8a80;
+            border-radius: 50%;
+            top: 35px;
+            left: 35px;
+        }
+
+        .hole-front {
+            width: 120px;
+            height: 45px;
+            background: linear-gradient(to bottom, #5d4037, #4e342e);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 3;
+            border-top: 4px solid #6d4c41;
+            box-shadow: 0 5px 6px rgba(0,0,0,0.3);
+        }
+        
+        /* ヒット時の得点ポップアップ */
+        .hit-text {
+            position: absolute;
+            font-size: 1.8rem;
+            font-weight: bold;
+            top: 10px;
+            left: 25px;
+            width: 90px;
+            text-align: center;
+            z-index: 4;
+            pointer-events: none;
+            text-shadow: 2px 2px 0px white;
+            animation: popOut 0.4s ease-out forwards;
+        }
+        @keyframes popOut {
+            0% { transform: scale(0.4); opacity: 1; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1) translateY(-35px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🔨 100点満点モグラ叩き 🔨</h1>
+    <p>茶色=+5点 | ✨金=+10点 | 💢紫=-5点（スルー！）</p>
+    
+    <div class="info-container">
+        <div class="score-box">スコア: <span id="score">0</span> / <span id="max-score">100</span></div>
+        <div class="time-box">残り時間: <span id="time-left">25</span>秒</div>
+    </div>
+    
+    <button id="start-btn" class="btn" onclick="startGame()">ゲームスタート！</button>
+
+    <div class="grid">
+        <div class="hole-container"><div class="hole-back"></div><div class="mole" onclick="whack(this)"><div class="eye left"></div><div class="eye right"></div><div class="nose"></div></div><div class="hole-front"></div></div>
+        <div class="hole-container"><div class="hole-back"></div><div class="mole" onclick="whack(this)"><div class="eye left"></div><div class="eye right"></div><div class="nose"></div></div><div class="hole-front"></div></div>
+        <div class="hole-container"><div class="hole-back"></div><div class="mole" onclick="whack(this)"><div class="eye left"></div><div class="eye right"></div><div class="nose"></div></div><div class="hole-front"></div></div>
+        <div class="hole-container"><div class="hole-back"></div><div class="mole" onclick="whack(this)"><div class="eye left"></div><div class="eye right"></div><div class="nose"></div></div><div class="hole-front"></div></div>
+        <div class="hole-container"><div class="hole-back"></div><div class="mole" onclick="whack(this)"><div class="eye left"></div><div class="eye right"></div><div class="nose"></div></div><div class="hole-front"></div></div>
+        <div class="hole-container"><div class="hole-back"></div><div class="mole" onclick="whack(this)"><div class="eye left"></div><div class="eye right"></div><div class="nose"></div></div><div class="hole-front"></div></div>
+        <div class="hole-container"><div class="hole-back"></div><div class="mole" onclick="whack(this)"><div class="eye left"></div><div class="eye right"></div><div class="nose"></div></div><div class="hole-front"></div></div>
+        <div class="hole-container"><div class="hole-back"></div><div class="mole" onclick="whack(this)"><div class="eye left"></div><div class="eye right"></div><div class="nose"></div></div><div class="hole-front"></div></div>
+        <div class="hole-container"><div class="hole-back"></div><div class="mole" onclick="whack(this)"><div class="eye left"></div><div class="eye right"></div><div class="nose"></div></div><div class="hole-front"></div></div>
+    </div>
+
+    <script>
+        const holes = document.querySelectorAll('.hole-container');
+        const scoreDisplay = document.getElementById('score');
+        const timeLeftDisplay = document.getElementById('time-left');
+        const startBtn = document.getElementById('start-btn');
+        
+        let score = 0;
+        let remainingPoints = 100; // 湧かせる必要のある残りのプラス点数
+        let activeMoles = 0;       // 現在画面に出ているモグラの数
+        let timeUp = false;
+        let countdownInterval;
+        const MAX_CONCURRENT_MOLES = 3; 
+
+        function randomTime(min, max) {
+            return Math.round(Math.random() * (max - min) + min);
+        }
+
+        function randomHole() {
+            const availableHoles = Array.from(holes).filter(hole => !hole.classList.contains('up'));
+            if (availableHoles.length === 0) return null;
+            const idx = Math.floor(Math.random() * availableHoles.length);
+            return availableHoles[idx];
+        }
+
+        function peep() {
+            if (timeUp) return;
+
+            // 100点分のモグラを出し切り、画面のモグラも0匹になったらゲーム終了
+            if (remainingPoints <= 0) {
+                if (activeMoles === 0) endGame();
+                return;
+            }
+
+            const hole = randomHole();
+            if (!hole) {
+                setTimeout(peep, 100);
+                return;
+            }
+
+            const mole = hole.querySelector('.mole');
+            
+            // 出現するモグラのタイプを確率で抽選
+            let type = 'normal';
+            const r = Math.random() * 100;
+            
+            if (r < 25 && remainingPoints >= 10) {
+                type = 'gold';
+            } else if (r < 45 && remainingPoints > 15) { 
+                // 残りポイントに余裕がある時だけ紫（罠）を混ぜる
+                type = 'purple';
+            } else {
+                type = 'normal';
+            }
+
+            // 残りポイントの調整（ジャスト100点にするためのストッパー）
+            if (type === 'gold' && remainingPoints < 10) type = 'normal';
+
+            // 出現させた分のポイントをマイナス
+            if (type === 'normal') remainingPoints -= 5;
+            if (type === 'gold') remainingPoints -= 10;
+
+            // モグラの状態リセットとクラス適用
+            mole.className = 'mole'; 
+            mole.classList.add(type);
+            mole.dataset.type = type;
+
+            hole.classList.add('up');
+            activeMoles++;
+            
+            let duration = randomTime(800, 1100);
+            if (type === 'gold') duration = randomTime(550, 800);   // 金は素早い
+            if (type === 'purple') duration = randomTime(900, 1300); // 紫はノロマ
+            
+            const moleTimeout = setTimeout(() => {
+                if (hole.classList.contains('up') && !mole.classList.contains('whacked')) {
+                    hole.classList.remove('up');
+                    activeMoles--;
+                    if (!timeUp) nextMole();
+                }
+            }, duration);
+
+            hole.dataset.timeoutId = moleTimeout;
+        }
+
+        function nextMole() {
+            if (timeUp) return;
+            if (remainingPoints <= 0) {
+                if (activeMoles === 0) endGame();
+                return;
+            }
+            setTimeout(peep, randomTime(250, 600));
+        }
+
+        function startGame() {
+            score = 0;
+            remainingPoints = 100;
+            activeMoles = 0;
+            scoreDisplay.textContent = score;
+            timeUp = false;
+            startBtn.disabled = true;
+            
+            let timeLeft = 25; // 余裕を持たせた制限時間（普通はこれより早く出切る）
+            timeLeftDisplay.textContent = timeLeft;
+
+            for (let i = 0; i < MAX_CONCURRENT_MOLES; i++) {
+                setTimeout(peep, i * 250);
+            }
+
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                timeLeftDisplay.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    endGame(true); // 時間切れ
+                }
+            }, 1000);
+        }
+
+        function endGame(isTimeOut = false) {
+            if (timeUp) return;
+            timeUp = true;
+            clearInterval(countdownInterval);
+            
+            holes.forEach(hole => {
+                clearTimeout(hole.dataset.timeoutId);
+                hole.classList.remove('up');
+                hole.querySelector('.mole').className = 'mole';
+            });
+            
+            startBtn.disabled = false;
+            
+            if (score === 100) {
+                alert(`🎉パーフェクト100点満点!!!🎉\nスコア: 100 / 100 点！\n素晴らしい神エイムでした！`);
+            } else if (isTimeOut) {
+                alert(`⏰時間切れ！\nスコア: ${score} / 100 点！\nもっと素早く叩いてみよう！`);
+            } else {
+                alert(`ゲーム終了！\nスコア: ${score} / 100 点！\n紫モグラをスルーして100点満点を目指そう！`);
+            }
+        }
+
+        function whack(mole) {
+            const hole = mole.parentNode;
+            if (!hole.classList.contains('up') || mole.classList.contains('whacked')) return;
+            
+            const type = mole.dataset.type;
+            let points = 0;
+            let effectText = '';
+            let effectColor = '';
+
+            if (type === 'normal') {
+                points = 5;
+                effectText = '+5';
+                effectColor = '#ff5722';
+            } else if (type === 'gold') {
+                points = 10;
+                effectText = '✨+10✨';
+                effectColor = '#ffd700';
+            } else if (type === 'purple') {
+                points = -5;
+                effectText = '💢-5';
+                effectColor = '#9c27b0';
+            }
+            
+            score += points;
+            if (score < 0) score = 0; // スコアがマイナスにならないようにガード
+            scoreDisplay.textContent = score;
+            
+            mole.classList.add('whacked');
+            clearTimeout(hole.dataset.timeoutId);
+            activeMoles--;
+            
+            const effect = document.createElement('div');
+            effect.className = 'hit-text';
+            effect.textContent = effectText;
+            effect.style.color = effectColor;
+            hole.appendChild(effect);
+            setTimeout(() => effect.remove(), 400);
+            
+            setTimeout(() => {
+                hole.classList.remove('up');
+                mole.classList.remove('whacked');
+                nextMole();
+            }, 120);
+        }
+    </script>
+</body>
+</html>
