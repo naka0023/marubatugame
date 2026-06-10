@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>目指せ100点満点！三色モグラ叩き</title>
+    <title>100点満点モグラ叩き（リッチリザルト版）</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -12,6 +12,8 @@
             margin: 0;
             padding: 20px;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         h1 {
             color: #2c3e50;
@@ -26,13 +28,11 @@
         .info-container {
             display: flex;
             justify-content: center;
-            gap: 30px;
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             font-weight: bold;
             margin-bottom: 15px;
         }
         .score-box { color: #d9534f; }
-        .time-box { color: #0275d8; }
         
         .btn {
             padding: 12px 30px;
@@ -57,6 +57,7 @@
             transform: none;
         }
         
+        /* モグラ叩きの盤面レイアウト */
         .grid {
             display: grid;
             grid-template-columns: repeat(3, 140px);
@@ -83,7 +84,6 @@
             box-shadow: inset 0 5px 10px rgba(0,0,0,0.7);
         }
 
-        /* 基本（茶色モグラ） */
         .mole {
             width: 84px;
             height: 90px;
@@ -98,14 +98,12 @@
             cursor: pointer;
         }
 
-        /* 金のモグラ */
         .mole.gold {
             background-color: #ffd700 !important;
             box-shadow: 0 0 20px #ffea00;
         }
         .mole.gold .nose { background-color: #ffa726; }
 
-        /* 紫のモグラ */
         .mole.purple {
             background-color: #8e24aa !important;
             box-shadow: 0 0 10px rgba(142, 36, 170, 0.5);
@@ -116,7 +114,6 @@
             transform: translateY(-15px);
         }
 
-        /* 叩かれたとき */
         .mole.whacked {
             background-color: #ff5252 !important;
             box-shadow: none !important;
@@ -171,7 +168,6 @@
             box-shadow: 0 5px 6px rgba(0,0,0,0.3);
         }
         
-        /* ヒット時の得点ポップアップ */
         .hit-text {
             position: absolute;
             font-size: 1.8rem;
@@ -190,6 +186,87 @@
             50% { transform: scale(1.2); }
             100% { transform: scale(1) translateY(-35px); opacity: 0; }
         }
+
+        /* 📱 スマホ用レスポンシブ対応 */
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            h1 { font-size: 1.6rem; }
+            .info-container { font-size: 1.4rem; }
+            
+            .grid {
+                grid-template-columns: repeat(3, 95px);
+                grid-gap: 10px 15px;
+            }
+            .hole-container { width: 95px; height: 105px; }
+            .hole-back { width: 82px; height: 28px; bottom: 10px; left: 6.5px; }
+            .mole { width: 58px; height: 62px; left: 18.5px; bottom: 18px; transform: translateY(80px); }
+            .hole-container.up .mole { transform: translateY(-10px); }
+            .mole.whacked { transform: translateY(30px) scaleY(0.4) !important; }
+            .eye { width: 4px; height: 4px; top: 18px; }
+            .eye.left { left: 16px; } .eye.right { right: 16px; }
+            .mole.whacked .eye::before { font-size: 10px; top: -6px; left: -2px; }
+            .nose { width: 10px; height: 6px; top: 25px; left: 24px; }
+            .hole-front { width: 82px; height: 32px; bottom: 5px; left: 6.5px; }
+            .hit-text { font-size: 1.3rem; left: 10px; width: 75px; top: 5px; }
+        }
+
+        /* 👑 リッチポップアップ（モーダル）のスタイル */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 30px 20px;
+            border-radius: 25px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform: scale(0.8);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.25);
+            text-align: center;
+        }
+        .modal-overlay.show .modal-content {
+            transform: scale(1);
+        }
+        .modal-title {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .modal-score-label {
+            font-size: 1rem;
+            color: #7f8c8d;
+            margin-top: 15px;
+        }
+        .modal-score {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #d9534f;
+            margin: 5px 0 15px 0;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+        }
+        .modal-comment {
+            color: #34495e;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 25px;
+            white-space: pre-line; /* 改行を有効にする */
+        }
     </style>
 </head>
 <body>
@@ -199,7 +276,6 @@
     
     <div class="info-container">
         <div class="score-box">スコア: <span id="score">0</span> / <span id="max-score">100</span></div>
-        <div class="time-box">残り時間: <span id="time-left">25</span>秒</div>
     </div>
     
     <button id="start-btn" class="btn" onclick="startGame()">ゲームスタート！</button>
@@ -216,17 +292,29 @@
         <div class="hole-container"><div class="hole-back"></div><div class="mole" onclick="whack(this)"><div class="eye left"></div><div class="eye right"></div><div class="nose"></div></div><div class="hole-front"></div></div>
     </div>
 
+    <div id="result-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="modal-title" class="modal-title">🎉 結果発表 🎉</div>
+            <div class="modal-score-label">FINAL SCORE</div>
+            <div class="modal-score"><span id="final-score">0</span><span style="font-size: 1.5rem; color:#7f8c8d;"> / 100</span></div>
+            <div id="modal-comment" class="modal-comment">ここにコメントが入ります</div>
+            <button class="btn" onclick="closeModal()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
     <script>
         const holes = document.querySelectorAll('.hole-container');
         const scoreDisplay = document.getElementById('score');
-        const timeLeftDisplay = document.getElementById('time-left');
         const startBtn = document.getElementById('start-btn');
+        const resultModal = document.getElementById('result-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalComment = document.getElementById('modal-comment');
+        const finalScore = document.getElementById('final-score');
         
         let score = 0;
-        let remainingPoints = 100; // 湧かせる必要のある残りのプラス点数
-        let activeMoles = 0;       // 現在画面に出ているモグラの数
-        let timeUp = false;
-        let countdownInterval;
+        let remainingPoints = 100; 
+        let activeMoles = 0;       
+        let gameActive = false;
         const MAX_CONCURRENT_MOLES = 3; 
 
         function randomTime(min, max) {
@@ -241,9 +329,8 @@
         }
 
         function peep() {
-            if (timeUp) return;
+            if (!gameActive) return;
 
-            // 100点分のモグラを出し切り、画面のモグラも0匹になったらゲーム終了
             if (remainingPoints <= 0) {
                 if (activeMoles === 0) endGame();
                 return;
@@ -257,27 +344,22 @@
 
             const mole = hole.querySelector('.mole');
             
-            // 出現するモグラのタイプを確率で抽選
             let type = 'normal';
             const r = Math.random() * 100;
             
             if (r < 25 && remainingPoints >= 10) {
                 type = 'gold';
             } else if (r < 45 && remainingPoints > 15) { 
-                // 残りポイントに余裕がある時だけ紫（罠）を混ぜる
-                type = 'purple';
+                type = 'purple'; 
             } else {
                 type = 'normal';
             }
 
-            // 残りポイントの調整（ジャスト100点にするためのストッパー）
             if (type === 'gold' && remainingPoints < 10) type = 'normal';
 
-            // 出現させた分のポイントをマイナス
             if (type === 'normal') remainingPoints -= 5;
             if (type === 'gold') remainingPoints -= 10;
 
-            // モグラの状態リセットとクラス適用
             mole.className = 'mole'; 
             mole.classList.add(type);
             mole.dataset.type = type;
@@ -286,14 +368,14 @@
             activeMoles++;
             
             let duration = randomTime(800, 1100);
-            if (type === 'gold') duration = randomTime(550, 800);   // 金は素早い
-            if (type === 'purple') duration = randomTime(900, 1300); // 紫はノロマ
+            if (type === 'gold') duration = randomTime(550, 800);
+            if (type === 'purple') duration = randomTime(900, 1300);
             
             const moleTimeout = setTimeout(() => {
                 if (hole.classList.contains('up') && !mole.classList.contains('whacked')) {
                     hole.classList.remove('up');
                     activeMoles--;
-                    if (!timeUp) nextMole();
+                    if (gameActive) nextMole();
                 }
             }, duration);
 
@@ -301,12 +383,12 @@
         }
 
         function nextMole() {
-            if (timeUp) return;
+            if (!gameActive) return;
             if (remainingPoints <= 0) {
                 if (activeMoles === 0) endGame();
                 return;
             }
-            setTimeout(peep, randomTime(250, 600));
+            setTimeout(peep, randomTime(200, 500));
         }
 
         function startGame() {
@@ -314,30 +396,18 @@
             remainingPoints = 100;
             activeMoles = 0;
             scoreDisplay.textContent = score;
-            timeUp = false;
+            gameActive = true;
             startBtn.disabled = true;
-            
-            let timeLeft = 25; // 余裕を持たせた制限時間（普通はこれより早く出切る）
-            timeLeftDisplay.textContent = timeLeft;
 
             for (let i = 0; i < MAX_CONCURRENT_MOLES; i++) {
                 setTimeout(peep, i * 250);
             }
-
-            countdownInterval = setInterval(() => {
-                timeLeft--;
-                timeLeftDisplay.textContent = timeLeft;
-                
-                if (timeLeft <= 0) {
-                    endGame(true); // 時間切れ
-                }
-            }, 1000);
         }
 
-        function endGame(isTimeOut = false) {
-            if (timeUp) return;
-            timeUp = true;
-            clearInterval(countdownInterval);
+        // 👑 終了処理：ポップアップを生成して表示
+        function endGame() {
+            if (!gameActive) return;
+            gameActive = false;
             
             holes.forEach(hole => {
                 clearTimeout(hole.dataset.timeoutId);
@@ -345,15 +415,32 @@
                 hole.querySelector('.mole').className = 'mole';
             });
             
-            startBtn.disabled = false;
+            // スコアをポップアップに反映
+            finalScore.textContent = score;
             
+            // 得点に応じた分岐演出
             if (score === 100) {
-                alert(`🎉パーフェクト100点満点!!!🎉\nスコア: 100 / 100 点！\n素晴らしい神エイムでした！`);
-            } else if (isTimeOut) {
-                alert(`⏰時間切れ！\nスコア: ${score} / 100 点！\nもっと素早く叩いてみよう！`);
+                modalTitle.textContent = '👑 PERFECT!!! 👑';
+                modalComment.textContent = '神レベルのタップスピード！\n100点満点、文句なしの完全制覇です！🎉';
+            } else if (score >= 80) {
+                modalTitle.textContent = '✨ GREAT!!! ✨';
+                modalComment.textContent = '素晴らしい反射神経！\n満点まであと一歩でした、惜しい！👍';
+            } else if (score >= 50) {
+                modalTitle.textContent = '👍 NICE TRY 👍';
+                modalComment.textContent = '半分以上のモグラを撃破！\n紫色の罠モグラを徹底スルーするのがコツ。';
             } else {
-                alert(`ゲーム終了！\nスコア: ${score} / 100 点！\n紫モグラをスルーして100点満点を目指そう！`);
+                modalTitle.textContent = '🎮 GAME OVER 🎮';
+                modalComment.textContent = '焦らずに、プラスになる茶色と金色の\nモグラだけをじっくり狙ってみよう！';
             }
+            
+            // ポップアップを表示（CSSアニメーションが発火）
+            resultModal.classList.add('show');
+        }
+
+        // ポップアップを閉じる処理
+        function closeModal() {
+            resultModal.classList.remove('show');
+            startBtn.disabled = false; // スタートボタンを再度押せるように
         }
 
         function whack(mole) {
@@ -380,7 +467,7 @@
             }
             
             score += points;
-            if (score < 0) score = 0; // スコアがマイナスにならないようにガード
+            if (score < 0) score = 0; 
             scoreDisplay.textContent = score;
             
             mole.classList.add('whacked');
