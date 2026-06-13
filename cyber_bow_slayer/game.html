@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cyber Bow Slayer v7.3 (Confirm Upgrade Update)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            background-color: #05050a;
+            font-family: 'Courier New', Courier, monospace, sans-serif;
+            overflow: hidden;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            background: radial-gradient(circle at center, #101026 0%, #050511 100%);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
+            max-width: 100%;
+            max-height: 100%;
+            aspect-ratio: 9 / 16;
+            touch-action: none;
+        }
+        #upgrade-screen {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 5, 15, 0.9);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+        }
+        .upgrade-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #00ffcc;
+            text-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        .upgrade-btn {
+            background: linear-gradient(135deg, #1a1a3a 0%, #0a0a1a 100%);
+            color: #fff;
+            border: 2px solid #00f0ff;
+            padding: 8px 12px;
+            margin: 5px;
+            width: 88%;
+            max-width: 340px;
+            border-radius: 12px;
+            font-size: 11px; 
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+            transition: all 0.2s;
+            text-align: left;
+            white-space: pre-line; 
+        }
+        .upgrade-btn:active {
+            transform: scale(0.98);
+        }
+        /* 決定ボタンのスタイル */
+        #apply-btn {
+            background: #00ffcc;
+            color: #000;
+            border: none;
+            padding: 10px 30px;
+            margin-top: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+            transition: 0.2s;
+            opacity: 0.3; /* 最初は半透明 */
+            pointer-events: none; /* 最初はクリック不可 */
+        }
+        #apply-btn.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #apply-btn:active { transform: scale(0.95); }
+
+        #gameover-screen {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(20, 0, 0, 0.9);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+            text-align: center;
+        }
+        .go-title {
+            font-size: 42px;
+            color: #ff3333;
+            text-shadow: 0 0 20px rgba(255, 51, 51, 0.6);
+            margin-bottom: 15px;
+            letter-spacing: 4px;
+        }
+        #restart-btn {
+            background: #ff3333;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            margin-top: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 51, 51, 0.4);
+            transition: 0.2s;
+        }
+        #restart-btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="upgrade-screen">
+        <div class="upgrade-title">▲ SYSTEM UPGRADE ▲<br><span style="font-size:12px; color:#aaa;">[ SELECT 2 ITEMS ]</span></div>
+        <button class="upgrade-btn" id="opt0"></button>
+        <button class="upgrade-btn" id="opt1"></button>
+        <button class="upgrade-btn" id="opt2"></button>
+        <button class="upgrade-btn" id="opt3"></button>
+        <button class="upgrade-btn" id="opt4"></button>
+        <button id="apply-btn">APPLY (0/2)</button>
+    </div>
+
+    <div id="gameover-screen">
+        <h1 class="go-title">MISSION FAILED</h1>
+        <p id="final-score" style="font-size: 18px; color: #aaa; line-height: 1.6;">SCORE: 0</p>
+        <button id="restart-btn" onclick="resetGame()">REBOOT SYSTEM</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const V_WIDTH = 360;
+        const V_HEIGHT = 640;
+        canvas.width = V_WIDTH;
+        canvas.height = V_HEIGHT;
+
+        let gameState = 'playing';
+        let score = 0;
+        let bestScore = 0;
+        let level = 1;
+        let xp = 0;
+        let nextXp = 1; 
+        let gameFrame = 0;
+
+        let player = {
+            x: V_WIDTH / 2,
+            y: V_HEIGHT - 80,
+            baseDamage: 1,
+            chargeSpeed: 1,
+            maxLife: 3,
+            life: 3,
+            arrowSpeed: 8,
+            angle: -Math.PI / 2,
+            pierceBonus: 0,
+            cooldownTimer: 0,
+            cooldownMax: 45, 
+            
+            normalBurst: 1,
+            maxBurst: 1,
+            normalSpread: 1,
+            maxSpread: 1,
+            shotQueue: [],
+
+            // 通常弾の特殊効果レベル
+            normalKnockbackLevel: 0,
+            normalPoisonLevel: 0,
+            normalElectricLevel: 0,
+            normalFreezeLevel: 0,
+            normalXpBonus: 0,
+            
+            // 各状態異常の個別確率管理 (初期値 30%)
+            kbChance: 0.30,
+            psChance: 0.30,
+            elChance: 0.30,
+            frChance: 0.30
+        };
+
+        const DEAD_LINE_Y = V_HEIGHT - 120;
+
+        let isDragging = false;
+        let startPoint = { x: 0, y: 0 };
+        let currentPoint = { x: 0, y: 0 };
+        let chargeValue = 0;
+
+        let arrows = [];
+        let enemies = [];
+        let particles = [];
+        let spawnTimer = 0;
+        let spawnInterval = 120;
+        let bossWarningTimer = 0;
+
+        const UPGRADE_POOL = [
+            { id: 'dmg', text: () => `⚡ PULSE DAMAGE +1\n(ベース威力: ${player.baseDamage} ➔ ${player.baseDamage + 1})`, action: () => { player.baseDamage += 1; } },
+            { id: 'chg', text: () => `⏱️ OVERCHARGE +40%\n(チャージ速度: ${Math.round(player.chargeSpeed*100)}% ➔ ${Math.round((player.chargeSpeed + 0.4)*100)}%)`, action: () => { player.chargeSpeed += 0.4; } },
+            { id: 'pierce', text: () => `🏹 MAX CHARGE PIERCE +1\n(金弾の追加貫通数: ${player.pierceBonus} ➔ ${player.pierceBonus + 1})`, action: () => { player.pierceBonus += 1; } },
+            { id: 'heal', text: () => `💖 NANO REPAIR +1\n(コア耐久値: ${player.life}/${player.maxLife} ➔ ${Math.min(player.maxLife, player.life + 1)}/${player.maxLife})`, action: () => { player.life = Math.min(player.maxLife, player.life + 1); } },
+            { id: 'spd', text: () => `🚀 HYPER VELOCITY\n(弾速・射程: ${player.arrowSpeed} ➔ ${player.arrowSpeed + 2.5})`, action: () => { player.arrowSpeed += 2.5; } },
+            { id: 'maxlife', text: () => `🛡️ MATRIX SHIELD +1\n(耐久上限: ${player.maxLife} ➔ ${player.maxLife + 1})`, action: () => { player.maxLife += 1; player.life += 1; } },
+            
+            { id: 'n_burst', text: () => `🔫 NORMAL BURST +1\n(通常弾連射数: ${player.normalBurst}発 ➔ ${player.normalBurst + 1}発)`, action: () => { player.normalBurst += 1; } },
+            { id: 'm_burst', text: () => `👑 MAX OVER BURST +1\n(金弾連射数: ${player.maxBurst}発 ➔ ${player.maxBurst + 1}発)`, action: () => { player.maxBurst += 1; } },
+            { id: 'n_spread', text: () => `░ NORMAL SPREAD +1\n(通常弾同時放射数: ${player.normalSpread}WAY ➔ ${player.normalSpread + 1}WAY)`, action: () => { player.normalSpread += 1; } },
+            { id: 'm_spread', text: () => `🔱 MAX OVER SPREAD +1\n(金弾同時放射数: ${player.maxSpread}WAY ➔ ${player.maxSpread + 1}WAY)`, action: () => { player.maxSpread += 1; } },
+
+            // 💥 ノックバック
+            { id: 'n_kb', text: () => `💥 IMPACT WAVE +1\n(KB衝撃力: Lv${player.normalKnockbackLevel} ➔ Lv${player.normalKnockbackLevel + 1})`, action: () => { player.normalKnockbackLevel += 1; } },
+            { id: 'kb_chance', text: () => `🔮 KB ACCELERATOR +20%\n(ノックバック発動率: ${Math.round(player.kbChance*100)}% ➔ ${Math.round((player.kbChance + 0.2)*100)}%)`, action: () => { player.kbChance += 0.2; } },
+            
+            // 🧪 毒
+            { id: 'n_ps', text: () => `🧪 BIO HAZARD +1\n(毒持続ダメージ: Lv${player.normalPoisonLevel} ➔ Lv${player.normalPoisonLevel + 1})`, action: () => { player.normalPoisonLevel += 1; } },
+            { id: 'ps_chance', text: () => `🔮 TOXIN CATALYST +20%\n(毒付与発動率: ${Math.round(player.psChance*100)}% ➔ ${Math.round((player.psChance + 0.2)*100)}%)`, action: () => { player.psChance += 0.2; } },
+
+            // ⚡ 雷撃
+            { id: 'n_el', text: () => `⚡ CHAIN LIGHTNING +1\n(連鎖電撃威力: Lv${player.normalElectricLevel} ➔ Lv${player.normalElectricLevel + 1})`, action: () => { player.normalElectricLevel += 1; } },
+            { id: 'el_chance', text: () => `🔮 STORM GENERATOR +20%\n(電撃発生発動率: ${Math.round(player.elChance*100)}% ➔ ${Math.round((player.elChance + 0.2)*100)}%)`, action: () => { player.elChance += 0.2; } },
+
+            // ❄️ 氷結
+            { id: 'n_fr', text: () => `❄️ CRYSTAL FREEZE +1\n(凍結持続時間: Lv${player.normalFreezeLevel} ➔ Lv${player.normalFreezeLevel + 1})`, action: () => { player.normalFreezeLevel += 1; } },
+            { id: 'fr_chance', text: () => `🔮 FROST MATRIX +20%\n(完全氷結発動率: ${Math.round(player.frChance*100)}% ➔ ${Math.round((player.frChance + 0.2)*100)}%)`, action: () => { player.frChance += 0.2; } },
+            
+            { id: 'n_xp', text: () => `📊 DATA HARVEST +1\n(通常撃破時ボーナスXP: +${player.normalXpBonus} ➔ +${player.normalXpBonus + 1})`, action: () => { player.normalXpBonus += 1; } }
+        ];
+        let currentOptions = [];
+        let selectedIndices = []; // 選択されたボタンのインデックスを保持する配列
+
+        function saveBestScore() {
+            try {
+                localStorage.setItem('cyber_bow_best_score', bestScore);
+            } catch (e) {
+                console.log("Storage save error:", e);
+            }
+        }
+
+        function loadBestScore() {
+            try {
+                const saved = localStorage.getItem('cyber_bow_best_score');
+                bestScore = saved ? parseInt(saved, 10) : 0;
+            } catch (e) {
+                bestScore = 0;
+                console.log("Storage load error:", e);
+            }
+        }
+
+        function getEnemyColor(maxHp, type) {
+            if (type === 'boss') return '#ff00ff';
+            if (type === 'shield') return '#e0e0e0'; 
+            if (maxHp === 1) return '#00ff66';
+            if (maxHp === 2) return '#00f0ff';
+            if (maxHp === 3) return '#bd00ff';
+            if (maxHp === 4) return '#ffaa00';
+            return '#ff0055';
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (gameState !== 'playing') return;
+            isDragging = true;
+            const rect = canvas.getBoundingClientRect();
+            startPoint.x = (e.clientX - rect.left) * (V_WIDTH / rect.width);
+            startPoint.y = (e.clientY - rect.top) * (V_HEIGHT / rect.height);
+            currentPoint = { ...startPoint };
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if (!isDragging || gameState !== 'playing') return;
+            const rect = canvas.getBoundingClientRect();
+            currentPoint.x = (e.clientX - rect.left) * (V_WIDTH / rect.width);
+            currentPoint.y = (e.clientY - rect.top) * (V_HEIGHT / rect.height);
+
+            let dx = currentPoint.x - startPoint.x;
+            let dy = currentPoint.y - startPoint.y;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > 5) {
+                player.angle = Math.atan2(-dy, -dx);
+            }
+        });
+
+        canvas.addEventListener('pointerup', () => {
+            if (!isDragging || gameState !== 'playing') return;
+            isDragging = false;
+
+            if (player.cooldownTimer > 0) {
+                chargeValue = 0;
+                return;
+            }
+
+            let dx = startPoint.x - currentPoint.x;
+            let dy = startPoint.y - currentPoint.y;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > 15) {
+                let angle = Math.atan2(dy, dx);
+                let isMax = chargeValue >= 100;
+                let damage = player.baseDamage + (isMax ? 3 : Math.floor(chargeValue / 40));
+                let size = isMax ? 14 : 6 + (chargeValue / 20);
+
+                let burstCount = isMax ? player.maxBurst : player.normalBurst;
+                let spreadCount = isMax ? player.maxSpread : player.normalSpread;
+
+                for (let b = 0; b < burstCount; b++) {
+                    player.shotQueue.push({
+                        delay: b * 6,
+                        isMax: isMax,
+                        angle: angle,
+                        damage: damage,
+                        size: size,
+                        spreadCount: spreadCount
+                    });
+                }
+
+                player.cooldownTimer = player.cooldownMax + (burstCount * 5);
+            }
+            chargeValue = 0;
+        });
+
+        function gameLoop() {
+            gameFrame++;
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update() {
+            if (gameState !== 'playing') return;
+
+            if (player.cooldownTimer > 0) {
+                player.cooldownTimer--;
+            }
+
+            if (isDragging) {
+                let dx = currentPoint.x - startPoint.x;
+                let dy = currentPoint.y - startPoint.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > 15 && player.cooldownTimer <= 0) {
+                    chargeValue = Math.min(100, chargeValue + 1.5 * player.chargeSpeed);
+                } else {
+                    chargeValue = 0;
+                }
+            }
+
+            for (let i = player.shotQueue.length - 1; i >= 0; i--) {
+                let q = player.shotQueue[i];
+                if (q.delay <= 0) {
+                    let N = q.spreadCount;
+                    let angleStep = 0.15;
+
+                    for (let s = 0; s < N; s++) {
+                        let finalAngle = q.angle;
+                        if (N > 1) {
+                            finalAngle = q.angle + (s - (N - 1) / 2) * angleStep;
+                        }
+
+                        let pierceCap = 1;
+                        if (q.isMax) {
+                            pierceCap = 2 + player.pierceBonus;
+                        }
+
+                        arrows.push({
+                            x: player.x,
+                            y: player.y,
+                            vx: Math.cos(finalAngle) * player.arrowSpeed,
+                            vy: Math.sin(finalAngle) * player.arrowSpeed,
+                            damage: q.damage,
+                            size: q.size,
+                            angle: finalAngle,
+                            isMax: q.isMax,
+                            pierce: pierceCap
+                        });
+                    }
+
+                    createParticles(player.x, player.y, q.isMax ? '#ffd700' : '#00f0ff', 6);
+                    player.shotQueue.splice(i, 1);
+                } else {
+                    q.delay--;
+                }
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                saveBestScore();
+            }
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                if (e.poisonTimer > 0) {
+                    e.poisonTimer--;
+                    if (e.poisonTimer % 20 === 0) {
+                        e.hp -= e.poisonLevel;
+                        e.killedByNormal = true;
+                        createParticles(e.x, e.y, '#bd00ff', 3);
+                    }
+                }
+                if (e.freezeTimer > 0) {
+                    e.freezeTimer--;
+                }
+            }
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+
+                if (e.hp <= 0) {
+                    createParticles(e.x, e.y, getEnemyColor(e.maxHp, e.type), e.type==='boss'?40:18);
+                    let xpGained = e.type === 'boss' ? 5 : 1;
+                    if (e.killedByNormal) {
+                        xpGained += player.normalXpBonus;
+                    }
+                    gainXp(xpGained);
+                    score += (e.type === 'boss' ? 2000 : 120) * e.maxHp;
+                    enemies.splice(i, 1);
+                    continue;
+                }
+
+                if (e.knockback > 0) {
+                    e.y -= e.type === 'boss' ? 0.3 : 1.5;
+                    e.knockback--;
+                } else if (e.freezeTimer <= 0) {
+                    e.y += e.speed;
+                    e.x += Math.sin(gameFrame * 0.02 + e.seed) * (e.type==='boss'? 0.1 : 0.3);
+                }
+
+                if (e.y >= DEAD_LINE_Y) {
+                    player.life -= e.type === 'boss' ? 2 : 1;
+                    createParticles(e.x, DEAD_LINE_Y, '#ff3333', 20);
+                    enemies.splice(i, 1);
+                    if (player.life <= 0) endGame();
+                    continue;
+                }
+            }
+
+            if (bossWarningTimer > 0) {
+                bossWarningTimer--;
+                if (bossWarningTimer === 0) {
+                    enemies.push({
+                        type: 'boss',
+                        x: V_WIDTH / 2,
+                        y: -50,
+                        hp: level * 25 + 20,
+                        maxHp: level * 25 + 20,
+                        speed: 0.25,
+                        size: 42,
+                        seed: Math.random() * 100,
+                        knockback: 0,
+                        poisonTimer: 0,
+                        poisonLevel: 0,
+                        freezeTimer: 0,
+                        killedByNormal: false
+                    });
+                }
+            }
+
+            spawnTimer++;
+            if (spawnTimer >= spawnInterval && bossWarningTimer === 0) {
+                spawnTimer = 0;
+                
+                if (gameFrame > 0 && gameFrame % 900 === 0) {
+                    bossWarningTimer = 120;
+                } else {
+                    let rand = Math.random();
+                    if (level >= 2 && rand < 0.25) {
+                        enemies.push({
+                            type: 'shield', 
+                            x: Math.random() * (V_WIDTH - 60) + 30,
+                            y: -30,
+                            hp: Math.floor(Math.random() * level) + 1,
+                            maxHp: Math.floor(Math.random() * level) + 1,
+                            speed: 0.7,
+                            size: 18,
+                            seed: Math.random() * 100,
+                            knockback: 0,
+                            poisonTimer: 0,
+                            poisonLevel: 0,
+                            freezeTimer: 0,
+                            killedByNormal: false
+                        });
+                    } else {
+                        let enemyHp = Math.floor(Math.random() * (level)) + 1;
+                        let baseSize = Math.random() * 5 + 13 + (enemyHp * 2); 
+                        let finalSpeed = Math.random() * 0.4 + 0.6 + (level * 0.05) - (enemyHp * 0.03);
+                        if (finalSpeed < 0.4) finalSpeed = 0.4;
+
+                        enemies.push({
+                            type: 'normal',
+                            x: Math.random() * (V_WIDTH - 60) + 30,
+                            y: -30,
+                            hp: enemyHp,
+                            maxHp: enemyHp,
+                            speed: finalSpeed,
+                            size: baseSize,
+                            seed: Math.random() * 100,
+                            knockback: 0,
+                            poisonTimer: 0,
+                            poisonLevel: 0,
+                            freezeTimer: 0,
+                            killedByNormal: false
+                        });
+                    }
+                }
+                if (spawnInterval > 45) spawnInterval -= 1;
+            }
+
+            for (let i = arrows.length - 1; i >= 0; i--) {
+                let a = arrows[i];
+                a.x += a.vx;
+                a.y += a.vy;
+                if (a.x < -20 || a.x > V_WIDTH + 20 || a.y < -20 || a.y > V_HEIGHT + 20) {
+                    arrows.splice(i, 1);
+                }
+            }
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                
+                for (let j = arrows.length - 1; j >= 0; j--) {
+                    let a = arrows[j];
+                    let dist = Math.sqrt((e.x - a.x)**2 + (e.y - a.y)**2);
+                    if (dist < e.size + a.size) {
+                        
+                        if (e.type === 'shield' && !a.isMax) {
+                            createParticles(a.x, a.y, '#ffffff', 8); 
+                            arrows.splice(j, 1); 
+                            continue; 
+                        }
+
+                        e.hp -= a.damage;
+                        e.knockback = e.type==='boss'? 1 : 4;
+                        
+                        if (e.type === 'shield') {
+                            a.pierce = 0; 
+                        }
+
+                        if (!a.isMax) {
+                            e.killedByNormal = true;
+                            
+                            if (player.normalKnockbackLevel > 0 && Math.random() < player.kbChance) {
+                                let kbRadius = player.normalKnockbackLevel * 35;
+                                createParticles(e.x, e.y, '#ffffff', 5);
+                                for (let other of enemies) {
+                                    if(other.type === 'boss') continue;
+                                    let d = Math.sqrt((e.x - other.x)**2 + (e.y - other.y)**2);
+                                    if (d < kbRadius) {
+                                        other.knockback = 10;
+                                        other.y -= 5;
+                                    }
+                                }
+                            }
+
+                            if (player.normalPoisonLevel > 0 && Math.random() < player.psChance) {
+                                e.poisonTimer = 140; 
+                                e.poisonLevel = player.normalPoisonLevel;
+                            }
+
+                            if (player.normalElectricLevel > 0 && Math.random() < player.elChance) {
+                                let eleRadius = player.normalElectricLevel * 40;
+                                createParticles(e.x, e.y, '#ffff00', 8);
+                                for (let other of enemies) {
+                                    if (other === e) continue;
+                                    let d = Math.sqrt((e.x - other.x)**2 + (e.y - other.y)**2);
+                                    if (d < eleRadius) {
+                                        other.hp -= player.normalElectricLevel; 
+                                        other.killedByNormal = true;
+                                        createParticles(other.x, other.y, '#ffff00', 3);
+                                    }
+                                }
+                            }
+
+                            if (player.normalFreezeLevel > 0 && Math.random() < player.frChance) {
+                                e.freezeTimer = player.normalFreezeLevel * 60; 
+                            }
+                        } else {
+                            e.killedByNormal = false; 
+                        }
+
+                        createParticles(a.x, a.y, getEnemyColor(e.maxHp, e.type), a.isMax ? 10 : 4);
+                        
+                        a.pierce--;
+                        if (a.pierce <= 0) {
+                            arrows.splice(j, 1);
+                        }
+                        
+                        if (e.hp <= 0) {
+                            break; 
+                        }
+                    }
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 3 + 1;
+                particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    color: color,
+                    alpha: 1,
+                    decay: Math.random() * 0.03 + 0.02,
+                    size: Math.random() * 2 + 1
+                });
+            }
+        }
+
+        function gainXp(amount) {
+            xp += amount;
+            if (xp >= nextXp) {
+                xp -= nextXp;
+                level++;
+                nextXp = Math.ceil(nextXp * 1.6); 
+                triggerLevelUp();
+            }
+        }
+
+        function triggerLevelUp() {
+            gameState = 'levelup';
+            isDragging = false;
+            chargeValue = 0;
+            selectedIndices = []; // 選択状況をクリア
+            
+            let availablePool = UPGRADE_POOL.filter(item => {
+                if (item.id === 'kb_chance' && player.normalKnockbackLevel === 0) return false;
+                if (item.id === 'ps_chance' && player.normalPoisonLevel === 0) return false;
+                if (item.id === 'el_chance' && player.normalElectricLevel === 0) return false;
+                if (item.id === 'fr_chance' && player.normalFreezeLevel === 0) return false;
+                return true;
+            });
+
+            let shuffled = [...availablePool].sort(() => 0.5 - Math.random());
+            currentOptions = shuffled.slice(0, 5);
+            
+            document.getElementById('upgrade-screen').style.display = 'flex';
+            updateUpgradeUI(); // UI全体の更新処理へ
+
+            // APPLYボタンの設定
+            const applyBtn = document.getElementById('apply-btn');
+            applyBtn.onclick = () => {
+                if (selectedIndices.length === 2) {
+                    // 確定ボタンが押されたタイミングで効果を発動
+                    selectedIndices.forEach(idx => currentOptions[idx].action());
+                    document.getElementById('upgrade-screen').style.display = 'none';
+                    gameState = 'playing';
+                }
+            };
+        }
+
+        // 🔘 アイテムの選択状況に合わせてUI表示（色やプレビュー、ボタンの活性化）を制御する関数
+        function updateUpgradeUI() {
+            const applyBtn = document.getElementById('apply-btn');
+            applyBtn.innerText = `APPLY (${selectedIndices.length}/2)`;
+
+            if (selectedIndices.length === 2) {
+                applyBtn.classList.add('active');
+            } else {
+                applyBtn.classList.remove('active');
+            }
+
+            for (let i = 0; i < 5; i++) {
+                const btn = document.getElementById(`opt${i}`);
+                btn.innerText = currentOptions[i].text();
+
+                if (selectedIndices.includes(i)) {
+                    // 選択されている状態
+                    btn.style.background = '#00ffcc';
+                    btn.style.color = '#000';
+                    btn.disabled = false;
+                } else {
+                    // 選択されていない状態
+                    btn.style.background = '';
+                    btn.style.color = '';
+                    
+                    // すでに2個選択されている場合は、他のボタンを押せなくする
+                    if (selectedIndices.length >= 2) {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.4';
+                    } else {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }
+
+                btn.onclick = () => {
+                    const foundIndex = selectedIndices.indexOf(i);
+                    if (foundIndex > -1) {
+                        // すでに選択されていたら「解除」
+                        selectedIndices.splice(foundIndex, 1);
+                    } else if (selectedIndices.length < 2) {
+                        // まだ2個未満なら「追加」
+                        selectedIndices.push(i);
+                    }
+                    updateUpgradeUI(); // 状態が変わったので再描画
+                };
+            }
+        }
+
+        function endGame() {
+            gameState = 'gameover';
+            if (score > bestScore) {
+                bestScore = score;
+                saveBestScore();
+            }
+            document.getElementById('gameover-screen').style.display = 'flex';
+            document.getElementById('final-score').innerHTML = `FINAL SCORE: ${score} [PHASE ${level}]<br><span style="font-size: 15px; color: #ffd700; display: inline-block; margin-top: 8px;">🏆 BEST SCORE: ${bestScore}</span>`;
+        }
+
+        function resetGame() {
+            score = 0; level = 1; xp = 0; nextXp = 1; 
+            player.life = 3; player.maxLife = 3; player.baseDamage = 1; player.chargeSpeed = 1; player.arrowSpeed = 8;
+            player.angle = -Math.PI / 2; player.pierceBonus = 0; player.cooldownTimer = 0;
+            player.normalBurst = 1; player.maxBurst = 1; player.normalSpread = 1; player.maxSpread = 1; player.shotQueue = [];
+            
+            player.normalKnockbackLevel = 0;
+            player.normalPoisonLevel = 0;
+            player.normalElectricLevel = 0;
+            player.normalFreezeLevel = 0;
+            player.normalXpBonus = 0;
+            
+            player.kbChance = 0.30;
+            player.psChance = 0.30;
+            player.elChance = 0.30;
+            player.frChance = 0.30;
+
+            arrows = []; enemies = []; particles = [];
+            spawnInterval = 120; spawnTimer = 0; bossWarningTimer = 0;
+            loadBestScore();
+            document.getElementById('gameover-screen').style.display = 'none';
+            gameState = 'playing';
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, V_WIDTH, V_HEIGHT);
+
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.03)';
+            ctx.lineWidth = 1;
+            for(let x = 0; x < V_WIDTH; x += 30) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, V_HEIGHT); ctx.stroke();
+            }
+            for(let y = 0; y < V_HEIGHT; y += 30) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(V_WIDTH, y); ctx.stroke();
+            }
+
+            let pulse = Math.sin(gameFrame * 0.1) * 3;
+            ctx.shadowBlur = 10 + pulse;
+            ctx.shadowColor = '#ff3333';
+            ctx.strokeStyle = 'rgba(255, 51, 51, 0.8)';
+            ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, DEAD_LINE_Y); ctx.lineTo(V_WIDTH, DEAD_LINE_Y); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
+
+            let stringPull = (isDragging && player.cooldownTimer <= 0) ? Math.min(25, chargeValue / 4) : 0;
+            let bowColor = player.cooldownTimer > 0 ? '#ff3333' : '#00f0ff';
+
+            ctx.fillStyle = '#111122';
+            ctx.strokeStyle = bowColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(10, 0, 25, -Math.PI * 0.65, Math.PI * 0.65); ctx.stroke();
+
+            ctx.strokeStyle = player.cooldownTimer > 0 ? 'rgba(255, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(10 - 5, -23); ctx.lineTo(-stringPull, 0); ctx.lineTo(10 - 5, 23); ctx.stroke();
+
+            if (isDragging && player.cooldownTimer <= 0) {
+                ctx.fillStyle = chargeValue >= 100 ? '#ffd700' : '#00ffff';
+                ctx.beginPath();
+                ctx.moveTo(-stringPull + 5, -2); ctx.lineTo(22, -2); ctx.lineTo(26, 0); ctx.lineTo(22, 2); ctx.lineTo(-stringPull + 5, 2);
+                ctx.fill();
+            }
+            ctx.restore();
+
+            if (isDragging && player.cooldownTimer <= 0) {
+                let dx = startPoint.x - currentPoint.x;
+                let dy = startPoint.y - currentPoint.y;
+                ctx.strokeStyle = 'rgba(0, 255, 204, 0.25)';
+                ctx.setLineDash([6, 6]);
+                ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(player.x + dx * 2, player.y + dy * 2); ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.arc(player.x, player.y + 40, 16, 0, Math.PI*2); ctx.stroke();
+
+                ctx.strokeStyle = chargeValue >= 100 ? '#ffd700' : '#00ffcc';
+                ctx.beginPath(); ctx.arc(player.x, player.y + 40, 16, -Math.PI/2, (-Math.PI/2) + (Math.PI * 2 * (chargeValue/100)));
+                ctx.stroke();
+            }
+
+            for (let a of arrows) {
+                ctx.save();
+                ctx.translate(a.x, a.y);
+                ctx.rotate(a.angle);
+                if (a.isMax) {
+                    ctx.shadowBlur = 12; ctx.shadowColor = '#ffd700';
+                    ctx.fillStyle = '#ffd700';
+                    ctx.beginPath(); ctx.arc(0, 0, a.size, -Math.PI*0.4, Math.PI*0.4); ctx.lineTo(-5, 0); ctx.closePath(); ctx.fill();
+                } else {
+                    ctx.shadowBlur = 6; ctx.shadowColor = '#00f0ff';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.moveTo(a.size * 1.5, 0); ctx.lineTo(-a.size, -a.size * 0.6); ctx.lineTo(-a.size * 0.4, 0); ctx.lineTo(-a.size, a.size * 0.6);
+                    ctx.closePath(); ctx.fill();
+                }
+                ctx.restore();
+                ctx.shadowBlur = 0;
+            }
+
+            for (let e of enemies) {
+                ctx.save();
+                ctx.translate(e.x, e.y);
+                
+                let eColor = getEnemyColor(e.maxHp, e.type);
+                if (e.freezeTimer > 0) eColor = '#00ffff'; 
+                else if (e.poisonTimer > 0) eColor = '#bd00ff';
+
+                ctx.fillStyle = e.knockback > 0 ? '#ffffff' : '#100518';
+                ctx.strokeStyle = eColor;
+                ctx.lineWidth = e.type === 'boss' ? 4 : 2;
+
+                if (e.type === 'boss') {
+                    ctx.shadowBlur = 15; ctx.shadowColor = eColor;
+                    ctx.beginPath();
+                    let spikes = 12;
+                    let rot = (gameFrame * 0.005) + e.seed;
+                    for (let i = 0; i < spikes; i++) {
+                        ctx.lineTo(Math.cos(rot) * e.size, Math.sin(rot) * e.size);
+                        rot += Math.PI / spikes;
+                        ctx.lineTo(Math.cos(rot) * (e.size * 0.7), Math.sin(rot) * (e.size * 0.7));
+                        rot += Math.PI / spikes;
+                    }
+                    ctx.closePath(); ctx.fill(); ctx.stroke();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.beginPath(); ctx.arc(0, 0, e.size * 0.4, 0, Math.PI*2); ctx.stroke();
+
+                } else if (e.type === 'shield') {
+                    ctx.shadowBlur = 8; ctx.shadowColor = '#ffffff';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -e.size * 1.3);
+                    ctx.lineTo(e.size * 1.1, 0);
+                    ctx.lineTo(0, e.size * 1.3);
+                    ctx.lineTo(-e.size * 1.1, 0);
+                    ctx.closePath(); ctx.fill(); ctx.stroke();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.strokeRect(-e.size*0.4, -e.size*0.4, e.size*0.8, e.size*0.8);
+
+                } else {
+                    ctx.beginPath();
+                    let spikes = 7;
+                    let rot = -Math.PI/2 + (e.freezeTimer > 0 ? 0 : gameFrame * 0.01) + e.seed;
+                    let step = Math.PI / spikes;
+                    for (let i = 0; i < spikes; i++) {
+                        ctx.lineTo(Math.cos(rot) * e.size, Math.sin(rot) * e.size); rot += step;
+                        ctx.lineTo(Math.cos(rot) * (e.size * 0.55), Math.sin(rot) * (e.size * 0.55)); rot += step;
+                    }
+                    ctx.closePath(); ctx.fill(); ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+
+                if (e.hp < e.maxHp || e.type === 'boss') {
+                    let barW = e.type === 'boss' ? 60 : 30;
+                    ctx.fillStyle = '#222';
+                    ctx.fillRect(-barW/2, -e.size - 10, barW, 5);
+                    ctx.fillStyle = eColor;
+                    ctx.fillRect(-barW/2, -e.size - 10, barW * (e.hp / e.maxHp), 5);
+                }
+                ctx.restore();
+            }
+
+            for (let p of particles) {
+                ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size); ctx.restore();
+            }
+            ctx.globalAlpha = 1.0;
+
+            if (bossWarningTimer > 0) {
+                ctx.fillStyle = JSON.parse(gameFrame % 20 < 10 ? '"rgba(255,0,50,0.15)"' : '"rgba(0,0,0,0)"');
+                ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+                ctx.font = 'bold 20px "Courier New"';
+                ctx.fillStyle = '#ff0055';
+                ctx.textAlign = 'center';
+                ctx.shadowBlur = 15; ctx.shadowColor = '#ff0055';
+                ctx.fillText('⚠️ WARNING: NEST BOSS APPROACHING ⚠️', V_WIDTH / 2, V_HEIGHT / 3);
+                ctx.shadowBlur = 0;
+            }
+
+            // UIテキスト
+            ctx.font = 'bold 13px "Courier New", monospace';
+            ctx.fillStyle = '#00f0ff'; ctx.textAlign = 'left'; ctx.fillText(`▶ LV: ${level}`, 15, 25);
+            ctx.fillStyle = '#ffd700'; ctx.textAlign = 'center'; ctx.fillText(`🏆 BEST: ${bestScore}`, V_WIDTH / 2, 25);
+            ctx.fillStyle = '#00f0ff'; ctx.textAlign = 'right'; ctx.fillText(`▶ SCORE: ${score}`, V_WIDTH - 15, 25);
+
+            ctx.fillStyle = 'rgba(0, 240, 255, 0.1)'; ctx.fillRect(15, 35, V_WIDTH - 30, 6);
+            ctx.fillStyle = '#00ffcc'; ctx.fillRect(15, 35, (V_WIDTH - 30) * (xp / nextXp), 6);
+
+            ctx.fillStyle = 'rgba(0, 240, 255, 0.6)'; ctx.font = '9px "Courier New", monospace'; ctx.textAlign = 'left';
+            ctx.fillText(`WEAPON_SYS_INFO:`, 15, V_HEIGHT - 75);
+            ctx.fillText(`  SHOT_MATRIX >> BURST[${player.normalBurst}] ✕ SPREAD[${player.normalSpread}] (MAX: B[${player.maxBurst}]✕S[${player.maxSpread}])`, 15, V_HEIGHT - 65);
+            
+            ctx.fillStyle = '#00ffcc';
+            ctx.fillText(`  STATUS_PROB >> KB:[${Math.round(player.kbChance*100)}%/Lv${player.normalKnockbackLevel}] PS:[${Math.round(player.psChance*100)}%/Lv${player.normalPoisonLevel}] EL:[${Math.round(player.elChance*100)}%/Lv${player.normalElectricLevel}] FR:[${Math.round(player.frChance*100)}%/Lv${player.normalFreezeLevel}]`, 15, V_HEIGHT - 53);
+
+            ctx.fillStyle = '#00f0ff'; ctx.font = '11px "Courier New", monospace'; ctx.fillText(`CORE_INTEGRITY:`, 15, V_HEIGHT - 26);
+            let heartStr = '■ '.repeat(Math.max(0, player.life));
+            let emptyStr = '□ '.repeat(Math.max(0, player.maxLife - player.life));
+            ctx.font = 'bold 15px sans-serif'; ctx.fillStyle = player.life === 1 ? '#ff3333' : '#00ffcc';
+            ctx.fillText(heartStr, 15, V_HEIGHT - 10);
+            ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillText(emptyStr, 15 + ctx.measureText(heartStr).width, V_HEIGHT - 10);
+        }
+
+        loadBestScore();
+        gameLoop();
+    </script>
+</body>
+</html>

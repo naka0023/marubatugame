@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyber Bow Slayer - Title Screen</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+    font-family:"Courier New", monospace;
+    background:#000;
+}
+
+#title-screen{
+    position:fixed;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+
+    background:
+        radial-gradient(
+            circle at center,
+            #102040 0%,
+            #050510 50%,
+            #000000 100%
+        );
+
+    overflow:hidden;
+}
+
+/* 背景グリッド */
+.grid{
+    position:absolute;
+    inset:0;
+
+    background-image:
+        linear-gradient(
+            rgba(0,255,255,0.08) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(0,255,255,0.08) 1px,
+            transparent 1px
+        );
+
+    background-size:40px 40px;
+
+    animation:gridMove 8s linear infinite;
+}
+
+@keyframes gridMove{
+    from{
+        transform:translateY(0);
+    }
+    to{
+        transform:translateY(40px);
+    }
+}
+
+/* 粒子 */
+.particle{
+    position:absolute;
+    width:3px;
+    height:3px;
+    border-radius:50%;
+    background:#00ffff;
+    box-shadow:0 0 10px #00ffff;
+    animation:floatParticle linear infinite;
+}
+
+@keyframes floatParticle{
+    from{
+        transform:translateY(100vh);
+        opacity:0;
+    }
+
+    20%{
+        opacity:1;
+    }
+
+    80%{
+        opacity:1;
+    }
+
+    to{
+        transform:translateY(-120px);
+        opacity:0;
+    }
+}
+
+/* ロゴ */
+.logo{
+    position:relative;
+    z-index:5;
+
+    font-size:clamp(32px,6vw,60px);
+    font-weight:bold;
+
+    color:#00ffff;
+
+    letter-spacing:6px;
+
+    text-align:center;
+
+    opacity:0;
+
+    text-shadow:
+        0 0 10px #00ffff,
+        0 0 25px #00ffff,
+        0 0 50px #00ffff;
+
+    animation:fadeIn 2s forwards;
+}
+
+/* サブタイトル */
+.subtitle{
+    position:relative;
+    z-index:5;
+
+    margin-top:15px;
+
+    color:#aaaaaa;
+
+    letter-spacing:3px;
+
+    opacity:0;
+
+    animation:fadeIn 2s forwards;
+    animation-delay:0.8s;
+}
+
+/* STARTボタン */
+.start-btn{
+    position:relative;
+    z-index:5;
+
+    margin-top:50px;
+
+    padding:16px 50px;
+
+    border:2px solid #00ffff;
+
+    border-radius:40px;
+
+    background:rgba(0,255,255,0.08);
+
+    color:#00ffff;
+
+    font-size:20px;
+    font-weight:bold;
+
+    cursor:pointer;
+
+    opacity:0;
+    transform:translateY(30px);
+
+    box-shadow:
+        0 0 15px rgba(0,255,255,0.3);
+
+    transition:0.25s;
+
+    animation:buttonAppear 1s forwards;
+    animation-delay:1.8s;
+}
+
+.start-btn:hover{
+    transform:scale(1.05);
+
+    background:rgba(0,255,255,0.15);
+
+    box-shadow:
+        0 0 20px rgba(0,255,255,0.6);
+}
+
+.start-btn:active{
+    transform:scale(0.96);
+}
+
+/* 点滅 */
+.press-start{
+    position:relative;
+    z-index:5;
+
+    margin-top:25px;
+
+    color:#00ffcc;
+
+    font-size:13px;
+
+    letter-spacing:2px;
+
+    opacity:0;
+
+    animation:
+        showText 1s forwards 2.5s,
+        blink 1s infinite 3s;
+}
+
+@keyframes blink{
+    50%{
+        opacity:0.2;
+    }
+}
+
+@keyframes showText{
+    to{
+        opacity:1;
+    }
+}
+
+/* フェードイン */
+@keyframes fadeIn{
+    from{
+        opacity:0;
+        transform:translateY(-20px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+/* ボタン登場 */
+@keyframes buttonAppear{
+    from{
+        opacity:0;
+        transform:translateY(30px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+/* フェードアウト */
+.fade-out{
+    animation:fadeOut 1s forwards;
+}
+
+@keyframes fadeOut{
+    to{
+        opacity:0;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="title-screen">
+
+    <div class="grid"></div>
+
+    <div class="logo">
+        CYBER BOW<br>
+        SLAYER
+    </div>
+
+    <div class="subtitle">
+        SYSTEM INITIALIZED
+    </div>
+
+    <button class="start-btn" id="startBtn">
+        ▶ START MISSION
+    </button>
+
+    <div class="press-start">
+        PRESS START
+    </div>
+
+</div>
+
+<script>
+
+// 背景粒子生成
+for(let i=0;i<50;i++){
+
+    const p=document.createElement("div");
+    p.className="particle";
+
+    p.style.left=Math.random()*100+"%";
+
+    p.style.animationDuration=
+        (6+Math.random()*8)+"s";
+
+    p.style.animationDelay=
+        (Math.random()*8)+"s";
+
+    document.body.appendChild(p);
+}
+
+// スタートボタン
+document
+.getElementById("startBtn")
+.addEventListener("click",()=>{
+
+    document
+    .getElementById("title-screen")
+    .classList.add("fade-out");
+
+    setTimeout(()=>{
+
+        location.href = "https://naka0023.github.io/marubatugame/cyber_bow_slayer/game.html";
+
+    },1000);
+
+});
+
+</script>
+
+</body>
+</html>
